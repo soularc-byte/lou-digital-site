@@ -1,0 +1,47 @@
+# Lou Digital, Version 10 (19.10.2026)
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+AddDefaultCharset utf-8
+AddType font/woff2 .woff2
+AddType image/webp .webp
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+# www und http -> https://lou-digital.de
+RewriteCond %{HTTP_HOST} ^www\.lou-digital\.de$ [NC]
+RewriteRule ^ https://lou-digital.de%{REQUEST_URI} [R=301,L]
+# direkte .html-Aufrufe auf saubere Adressen umleiten (nur echte Anfragen, keine Schleifen)
+RewriteCond %{THE_REQUEST} \s/+((?:[^\s?]*/)?)index\.html[\s?] [NC]
+RewriteRule ^ /%1 [R=301,L]
+RewriteCond %{THE_REQUEST} \s/+([^\s?]+?)\.html[\s?] [NC]
+RewriteCond %{REQUEST_URI} !^/404\.html$
+RewriteRule ^ /%1 [R=301,L]
+# /en ohne Schrägstrich
+RewriteRule ^en$ /en/ [R=301,L]
+# Schrägstrich am Ende entfernen (außer Ordner)
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)/$ /$1 [R=301,L]
+# saubere Adressen: /websites -> websites.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^(.+)$ /$1.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType font/woff2 "access plus 1 year"
+ExpiresByType image/webp "access plus 1 month"
+ExpiresByType image/jpeg "access plus 1 month"
+ExpiresByType text/css "access plus 1 week"
+ExpiresByType application/javascript "access plus 1 week"
+ExpiresByType text/html "access plus 0 seconds"
+</IfModule>

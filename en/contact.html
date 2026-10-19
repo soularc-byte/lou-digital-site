@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Send an enquiry – Lou Digital</title>
+<meta name="description" content="Contact Lou Digital in Karlsruhe: enquiries for websites, automation, surveys, maintenance or a free website check.">
+<link rel="canonical" href="https://lou-digital.de/en/contact">
+<link rel="alternate" hreflang="de" href="https://lou-digital.de/kontakt">
+<link rel="alternate" hreflang="en" href="https://lou-digital.de/en/contact">
+<link rel="alternate" hreflang="x-default" href="https://lou-digital.de/kontakt">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f5f6f3">
+<meta property="og:title" content="Send an enquiry – Lou Digital">
+<meta property="og:description" content="Contact Lou Digital in Karlsruhe: enquiries for websites, automation, surveys, maintenance or a free website check.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lou-digital.de/en/contact">
+<meta property="og:image" content="https://lou-digital.de/img/fig-web.webp">
+<link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/site.css?v=10">
+<script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);</script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="/en/" aria-label="Lou Digital, home"><svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" fill="#0b6e69"/><path d="M12.5 9v15.5h9.5" fill="none" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="24.5" r="2.8" fill="#d2f05a"/></svg><span>Lou Digital</span></a>
+    <nav class="nav" id="nav" aria-label="Main navigation"><a href="/en/websites"><span class="slot"><span>Websites</span><span class="ghost" aria-hidden="true">Websites</span></span></a><a href="/en/automation"><span class="slot"><span>Automation</span><span class="ghost" aria-hidden="true">Automatik</span></span></a><a href="/en/website-check"><span class="slot"><span>Website check</span><span class="ghost" aria-hidden="true">Website-Check</span></span></a><a href="/en/packages"><span class="slot"><span>Packages</span><span class="ghost" aria-hidden="true">Pakete</span></span></a><a href="/en/custom"><span class="slot"><span>Custom</span><span class="ghost" aria-hidden="true">Individuell</span></span></a><a href="/en/about"><span class="slot"><span>About</span><span class="ghost" aria-hidden="true">Über mich</span></span></a><a href="/en/faq"><span class="slot"><span>FAQ</span><span class="ghost" aria-hidden="true">Fragen</span></span></a></nav>
+    <div class="top-actions">
+      <div class="lang" data-active="en" role="group" aria-label="Sprache / Language"><a href="/kontakt" hreflang="de" lang="de" class="" aria-label="Deutsch">DE</a><a href="/en/contact" hreflang="en" lang="en" class="is-on" aria-label="English" aria-current="true">EN</a></div>
+      <a class="btn btn--primary" href="/en/contact?anliegen=check"><span class="slot"><span>Request check</span><span class="ghost" aria-hidden="true">Check anfordern</span></span></a>
+      <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="nav"><span class="slot"><span>Menu</span><span class="ghost" aria-hidden="true">Menü</span></span></button>
+    </div>
+  </div>
+</header>
+<main id="main">
+<section class="page-hero"><div class="wrap">
+  <h1 data-reveal>Send an enquiry</h1>
+  <p class="lead" data-reveal style="--d:.08s">Tell me briefly what it’s about. You get a confirmation right away and a personal reply from me.</p>
+</div></section>
+  <section class="sec sec--tight"><div class="wrap close">
+    <div>
+      <div class="contact-facts" data-reveal>
+        <p><strong>E-Mail</strong><br><a href="mailto:info@lou-digital.de">info@lou-digital.de</a></p>
+        
+        <p><strong>Based in</strong><br>Karlsruhe, Baden-Württemberg, Germany</p>
+        <p><strong>Response time</strong><br>Usually within two working days</p>
+      </div>
+      <div class="trio" aria-hidden="true" data-reveal="scale">
+        <div class="blk blk--petrol"><img class="fig" src="/img/fig-web.webp" width="900" height="900" alt="" style="--f:84%" decoding="async"></div>
+        <div class="blk blk--ink"><img class="fig" src="/img/fig-mail.webp" width="900" height="900" alt="" style="--f:86%" decoding="async"></div>
+        <div class="blk blk--mint dots"><img class="fig" src="/img/fig-clip.webp" width="900" height="900" alt="" style="--f:84%" decoding="async"></div>
+      </div>
+    </div>
+    <form class="form" id="contact" action="/api/anfrage.php" method="post" novalidate data-reveal="scale">
+      <h3>Your enquiry</h3>
+      <div class="field"><label for="f-topic">What is it about?</label><select id="f-topic" name="anliegen"><option value="check">Website check</option><option value="website">Website in 7 days</option><option value="automatik">Enquiry automation</option><option value="umfrage">Customer survey</option><option value="betreuung">Maintenance</option><option value="individuell">Custom package</option><option value="sonstiges">Other</option></select></div>
+      <div class="field" id="pkg-field" hidden><label for="f-pkg">Your selection</label><textarea id="f-pkg" name="zusammenstellung" readonly></textarea><a class="link" style="justify-self:start;font-size:14px" href="/en/custom">Change selection</a></div>
+      <div class="row2">
+        <div class="field"><label for="f-name">Your name</label><input id="f-name" name="name" type="text" autocomplete="name" maxlength="100" required><span class="err" id="e-name" hidden>Please enter your name.</span></div>
+        <div class="field"><label for="f-company">Company <em>(optional)</em></label><input id="f-company" name="firma" type="text" autocomplete="organization" maxlength="120"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="f-mail">Your email</label><input id="f-mail" name="email" type="email" autocomplete="email" maxlength="150" required placeholder="name@your-company.com"><span class="err" id="e-mail" hidden>Please check the email address.</span></div>
+        <div class="field"><label for="f-tel">Phone <em>(optional)</em></label><input id="f-tel" name="telefon" type="tel" autocomplete="tel" maxlength="30" placeholder="+49 721 123456"><span class="err" id="e-tel" hidden>Please check the phone number.</span></div>
+      </div>
+      <div class="field"><label for="f-url">Your website <em id="url-hint">(optional)</em></label><input id="f-url" name="website_url" type="text" inputmode="url" maxlength="200" placeholder="your-company.com" autocomplete="url"><span class="err" id="e-url" hidden>Please enter an address like your-company.com.</span></div>
+      <div class="field"><label for="f-msg">Message <em>(optional)</em></label><textarea id="f-msg" name="nachricht" maxlength="1500" placeholder="What matters to you?"></textarea></div>
+      <div class="hp" aria-hidden="true"><label for="f-hp">Please leave empty</label><input id="f-hp" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      <label class="consent" for="f-ok"><input id="f-ok" name="einwilligung" value="1" type="checkbox"><span>I agree that Lou Digital stores my details to process this enquiry. Details in the <a href="/en/privacy">privacy policy</a>.</span></label>
+      <span class="err" id="e-ok" hidden>Please confirm your consent.</span>
+      <button class="btn btn--primary" type="submit" id="f-send">Send enquiry</button>
+      <p class="msg" id="f-res" hidden role="status"></p>
+    </form>
+  </div></section>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <p class="big" data-reveal>Lou Digital</p>
+    <div class="foot-cols">
+      <div data-reveal style="--d:.05s"><h3>Services</h3><ul>
+        <li><a href="/en/websites">Website in 7 days</a></li>
+        <li><a href="/en/automation">Enquiry automation</a></li>
+        <li><a href="/en/website-check">Free website check</a></li>
+        <li><a href="/en/packages">Customer survey and maintenance</a></li>
+      </ul></div>
+      <div data-reveal style="--d:.1s"><h3>Lou Digital</h3><ul>
+        <li><a href="/en/packages">Packages and prices</a></li>
+        <li><a href="/en/custom">Custom package</a></li>
+        <li><a href="/en/about">About me</a></li>
+        <li><a href="/en/faq">FAQ</a></li>
+        <li><a href="/en/contact">Send an enquiry</a></li>
+      </ul></div>
+      <div data-reveal style="--d:.15s"><h3>Legal</h3><ul>
+        <li><a href="/en/imprint">Legal notice</a></li>
+        <li><a href="/en/privacy">Privacy policy</a></li>
+        <li class="muted">No cookies, no tracking</li>
+        <li class="muted">Small business under § 19 UStG</li>
+      </ul></div>
+      <div data-reveal style="--d:.2s"><h3>Contact</h3><ul>
+        <li>Adrian Semlinger</li>
+        <li>Karlsruhe, Germany</li>
+        <li><a href="mailto:info@lou-digital.de">info@lou-digital.de</a></li>
+        
+        <li class="muted">Reply usually within two working days</li>
+      </ul></div>
+    </div>
+    <div class="foot-bar">
+      <span>© 2026 Lou Digital · Adrian Semlinger</span>
+      <span class="lang-text"><a href="/kontakt" hreflang="de">Deutsch</a> · <a href="/en/contact" hreflang="en" aria-current="true">English</a></span>
+      <button class="to-top" id="to-top" type="button">Back to top</button>
+    </div>
+  </div>
+</footer>
+<script src="/js/lenis.min.js" defer></script>
+<script src="/js/site.js?v=10" defer></script>
+</body>
+</html>
