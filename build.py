@@ -167,7 +167,15 @@ def page(lang, key, title, desc, body, noindex=False, extra_head=''):
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{canon}">
-<meta property="og:image" content="{SITE}{A('/img/fig-web.webp')}">
+<meta property="og:image" content="{SITE}/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Lou Digital">
+<meta property="og:locale" content="{'de_DE' if lang == 'de' else 'en_GB'}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{CSS_URL}">
 <script>{INLINE_JS}</script>
@@ -692,6 +700,7 @@ ErrorDocument 404 /404.html
 AddDefaultCharset utf-8
 AddType font/woff2 .woff2
 AddType image/webp .webp
+AddType application/manifest+json .webmanifest
 
 <IfModule mod_rewrite.c>
 RewriteEngine On

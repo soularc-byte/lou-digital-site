@@ -141,7 +141,7 @@ function ld_norm_url(string $u): ?array {
   $path = $p['path'] ?? '/';
   return ['host' => $host, 'path' => $path === '' ? '/' : $path];
 }
-function ld_fetch(string $url, int $hops = 4): array {
+function ld_fetch(string $url, int $hops = 4, bool $verify = true): array {
   $res = ['ok' => false, 'url' => $url, 'tls' => false, 'html' => '', 'ms' => 0, 'err' => ''];
   $t0 = microtime(true);
   for ($i = 0; $i <= $hops; $i++) {
@@ -157,7 +157,7 @@ function ld_fetch(string $url, int $hops = 4): array {
     curl_setopt_array($ch, [
       CURLOPT_RESOLVE => [$host . ':' . $port . ':' . $ips[0]],
       CURLOPT_FOLLOWLOCATION => false, CURLOPT_HEADER => false, CURLOPT_CONNECTTIMEOUT => 4, CURLOPT_TIMEOUT => 9,
-      CURLOPT_SSL_VERIFYPEER => true, CURLOPT_SSL_VERIFYHOST => 2, CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+      CURLOPT_SSL_VERIFYPEER => $verify, CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0, CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
       CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; LouDigital-Check/1.0; +https://lou-digital.de/website-check)',
       CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml', 'Accept-Language: de-DE,de;q=0.9,en;q=0.8'],
       CURLOPT_ENCODING => '',
@@ -183,12 +183,18 @@ function ld_check(string $input, string $lang): array {
   if (!function_exists('curl_init')) return ['ok' => false, 'error' => 'server'];
   $r = ld_fetch('https://' . $n['host'] . $n['path']);
   $httpsOk = $r['ok'] && $r['tls'] && stripos($r['url'], 'https://') === 0;
+  $tlsBad = false;
   if (!$r['ok']) {
     if (in_array($r['err'], ['blocked', 'url'], true)) return ['ok' => false, 'error' => 'url'];
-    $r2 = ld_fetch('http://' . $n['host'] . $n['path']);
-    if (!$r2['ok']) return ['ok' => false, 'error' => $r['err'] === 'dns' ? 'dns' : 'unreachable'];
-    $httpsOk = stripos($r2['url'], 'https://') === 0 && $r2['tls'];
-    $r = $r2;
+    if ($r['err'] === 'dns') return ['ok' => false, 'error' => 'dns'];
+    if ($r['err'] === 'tls') { $tlsBad = true; $r = ld_fetch('https://' . $n['host'] . $n['path'], 4, false); }
+    if (!$r['ok']) {
+      $r2 = ld_fetch('http://' . $n['host'] . $n['path']);
+      if (!$r2['ok'] && $r2['err'] === 'tls') { $tlsBad = true; $r2 = ld_fetch('http://' . $n['host'] . $n['path'], 4, false); }
+      if (!$r2['ok']) return ['ok' => false, 'error' => 'unreachable'];
+      $r = $r2;
+    }
+    $httpsOk = !$tlsBad && stripos($r['url'], 'https://') === 0 && $r['tls'];
   }
   $html = $r['html'];
   $mobile = false;
@@ -204,7 +210,7 @@ function ld_check(string $input, string $lang): array {
   $titleOk = $tl >= 15 && $tl <= 70 && !in_array(mb_strtolower($title), $generic, true) && count(preg_split('/\s+/u', $title) ?: []) >= 2;
   $items = [
     ['id' => 'https', 'ok' => $httpsOk, 'label' => $de ? 'Verschlüsselt über HTTPS' : 'Encrypted via HTTPS',
-     'hint' => $httpsOk ? ($de ? 'Das Schloss im Browser ist da.' : 'The browser shows the padlock.') : ($de ? 'Ohne HTTPS warnen Browser Ihre Besucher, und Google stuft die Seite ab.' : 'Without HTTPS, browsers warn your visitors and Google ranks the site lower.')],
+     'hint' => $httpsOk ? ($de ? 'Das Schloss im Browser ist da.' : 'The browser shows the padlock.') : ($tlsBad ? ($de ? 'Das Sicherheitszertifikat ist ungültig oder abgelaufen. Browser zeigen Ihren Besuchern eine Warnseite.' : 'The security certificate is invalid or expired. Browsers show your visitors a warning page.') : ($de ? 'Ohne HTTPS warnen Browser Ihre Besucher, und Google stuft die Seite ab.' : 'Without HTTPS, browsers warn your visitors and Google ranks the site lower.'))],
     ['id' => 'mobile', 'ok' => $mobile, 'label' => $de ? 'Auf dem Handy gut lesbar' : 'Easy to read on a phone',
      'hint' => $mobile ? ($de ? 'Die Seite passt sich der Bildschirmbreite an.' : 'The page adapts to the screen width.') : ($de ? 'Die Seite ist nicht für Handys eingerichtet. Dort kommen die meisten Besucher her.' : 'The page isn’t set up for phones, where most visitors come from.')],
     ['id' => 'imprint', 'ok' => $imprint, 'label' => $de ? 'Impressum verlinkt' : 'Legal notice linked',
