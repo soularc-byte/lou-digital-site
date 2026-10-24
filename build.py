@@ -551,7 +551,7 @@ def sub_kontakt(lang):
     <div class="k-side">
       <div class="contact-quick" data-reveal>
         <a class="cq" href="tel:{tel}" data-track="Anruf"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z" fill="currentColor"/></svg></span><span><b>{L(lang, 'Anrufen', 'Call')}</b><small>{e(PHONE)}</small></span></a>
-        <a class="cq" href="mailto:{EMAIL}" data-track="E-Mail"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zm2 .9v.3l7 4.6 7-4.6v-.3z" fill="currentColor"/></svg></span><span><b>E-Mail</b><small>{EMAIL}</small></span></a>
+        <a class="cq" href="mailto:{EMAIL}" data-track="E-Mail"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zm2 .9v.3l7 4.6 7-4.6v-.3z" fill="currentColor"/></svg></span><span><b>{L(lang, "E-Mail", "Email")}</b><small>{EMAIL}</small></span></a>
         <a class="cq" href="?pakete=termin#contact" data-termin data-track="Gespräch vereinbaren"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm-2 8h14v9H5z" fill="currentColor"/></svg></span><span><b>{L(lang, 'Gespräch vereinbaren', 'Book a call')}</b><small>{L(lang, 'Telefon, Video oder vor Ort', 'Phone, video or in person')}</small></span></a>
       </div>
       <div class="contact-facts" data-reveal>
