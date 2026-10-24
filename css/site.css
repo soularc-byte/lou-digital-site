@@ -555,3 +555,10 @@ html.js [data-reveal="scale"].in { transform: none; }
   .kontakt-grid .contact-facts { order: 3; margin-top: 0; }
   .kontakt-grid .trio { display: none; }
 }
+
+/* Terminfelder: kein Überlappen (iOS-Datumsfeld hat eine eigene Mindestbreite) */
+.row3 .field { min-width: 0; }
+.field input[type="date"] { min-width: 0; max-width: 100%; display: block; -webkit-appearance: none; appearance: none; line-height: 46px; text-align: left; }
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.field input[type="date"]::-webkit-calendar-picker-indicator { opacity: .7; }
+@media (max-width: 560px) { .row3 { grid-template-columns: 1fr; } .row3 .f-slot { grid-column: auto; } }
