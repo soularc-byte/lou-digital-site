@@ -1,0 +1,2 @@
+DirectoryIndex index.php
+Header always set X-Robots-Tag "noindex, nofollow"

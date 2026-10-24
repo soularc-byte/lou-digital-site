@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /statistik/
 Sitemap: https://lou-digital.de/sitemap.xml

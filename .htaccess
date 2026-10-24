@@ -1,4 +1,4 @@
-# Lou Digital, Version 10 (19.10.2026)
+# Lou Digital, Version 12 (24.10.2026)
 Options -Indexes -MultiViews
 DirectoryIndex start.html
 ErrorDocument 404 /404.html
@@ -37,8 +37,18 @@ RewriteRule ^(.+)$ /$1.html [L]
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
 Header always set X-Frame-Options "SAMEORIGIN"
-Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+Header always set Strict-Transport-Security "max-age=31536000"
+Header always set Cross-Origin-Opener-Policy "same-origin"
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-+4eavMxxKoee09KVESIeIKl8hyabcjcOVTK0N3esWtQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+Header always unset X-Powered-By
+Header unset X-Powered-By
 </IfModule>
+
+# Versteckte Dateien und Hilfsdateien nicht ausliefern
+<FilesMatch "^\.(?!well-known)|\.(md|py|log|bak|sql|ini|sh)$">
+Require all denied
+</FilesMatch>
 
 <IfModule mod_expires.c>
 ExpiresActive On

@@ -10,15 +10,15 @@
 <link rel="alternate" hreflang="en" href="https://lou-digital.de/en/imprint">
 <link rel="alternate" hreflang="x-default" href="https://lou-digital.de/impressum">
 <meta name="robots" content="noindex, follow">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.svg?v=34907f0e" type="image/svg+xml">
 <meta name="theme-color" content="#f5f6f3">
 <meta property="og:title" content="Legal notice – Lou Digital">
 <meta property="og:description" content="Legal notice of Lou Digital, Adrian Semlinger, Karlsruhe.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://lou-digital.de/en/imprint">
-<meta property="og:image" content="https://lou-digital.de/img/fig-web.webp">
+<meta property="og:image" content="https://lou-digital.de/img/fig-web.webp?v=7ac4f9f6">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=11">
+<link rel="stylesheet" href="/css/site.css?v=565d0e78">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);</script>
 </head>
 <body>
@@ -28,7 +28,7 @@
     <nav class="nav" id="nav" aria-label="Main navigation"><a href="/en/websites"><span class="slot"><span>Websites</span><span class="ghost" aria-hidden="true">Websites</span></span></a><a href="/en/automation"><span class="slot"><span>Automation</span><span class="ghost" aria-hidden="true">Automatik</span></span></a><a href="/en/website-check"><span class="slot"><span>Website check</span><span class="ghost" aria-hidden="true">Website-Check</span></span></a><a href="/en/packages"><span class="slot"><span>Packages</span><span class="ghost" aria-hidden="true">Pakete</span></span></a><a href="/en/custom"><span class="slot"><span>Custom</span><span class="ghost" aria-hidden="true">Individuell</span></span></a><a href="/en/about"><span class="slot"><span>About</span><span class="ghost" aria-hidden="true">Über mich</span></span></a><a href="/en/faq"><span class="slot"><span>FAQ</span><span class="ghost" aria-hidden="true">Fragen</span></span></a></nav>
     <div class="top-actions">
       <div class="lang" data-active="en" role="group" aria-label="Sprache / Language"><a href="/impressum" hreflang="de" lang="de" class="" aria-label="Deutsch">DE</a><a href="/en/imprint" hreflang="en" lang="en" class="is-on" aria-label="English" aria-current="true">EN</a></div>
-      <a class="btn btn--primary" href="/en/contact?anliegen=check"><span class="slot"><span>Request check</span><span class="ghost" aria-hidden="true">Check anfordern</span></span></a>
+      <a class="btn btn--primary" href="/en/contact?pakete=check"><span class="slot"><span>Request check</span><span class="ghost" aria-hidden="true">Check anfordern</span></span></a>
       <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="nav"><span class="slot"><span>Menu</span><span class="ghost" aria-hidden="true">Menü</span></span></button>
     </div>
   </div>
@@ -53,7 +53,7 @@
     <div class="foot-cols">
       <div data-reveal style="--d:.05s"><h3>Services</h3><ul>
         <li><a href="/en/websites">Website in 7 days</a></li>
-        <li><a href="/en/automation">Enquiry automation</a></li>
+        <li><a href="/en/automation">Inquiry automation</a></li>
         <li><a href="/en/website-check">Free website check</a></li>
         <li><a href="/en/packages">Customer survey and maintenance</a></li>
       </ul></div>
@@ -62,17 +62,17 @@
         <li><a href="/en/custom">Custom package</a></li>
         <li><a href="/en/about">About me</a></li>
         <li><a href="/en/faq">FAQ</a></li>
-        <li><a href="/en/contact">Send an enquiry</a></li>
+        <li><a href="/en/contact">Send an inquiry</a></li>
       </ul></div>
       <div data-reveal style="--d:.15s"><h3>Legal</h3><ul>
         <li><a href="/en/imprint">Legal notice</a></li>
         <li><a href="/en/privacy">Privacy policy</a></li>
-        <li class="muted">No cookies, no tracking</li>
+        <li class="muted">No cookies</li>
         <li class="muted">Small business under § 19 UStG</li>
       </ul></div>
       <div data-reveal style="--d:.2s"><h3>Contact</h3><ul>
         <li>Adrian Semlinger</li>
-        <li><a href="https://www.google.com/maps/search/?api=1&amp;query=Lachenweg+34+76139+Karlsruhe" target="_blank" rel="noopener">Lachenweg 34, 76139 Karlsruhe</a></li>
+        <li>Karlsruhe, Germany</li>
         <li><a href="mailto:info@lou-digital.de">info@lou-digital.de</a></li>
         <li><a href="tel:+4915630163539">+49 156 30163539</a></li>
         <li class="muted">Reply usually within 24 hours</li>
@@ -80,12 +80,34 @@
     </div>
     <div class="foot-bar">
       <span>© 2026 Lou Digital · Adrian Semlinger</span>
+      <button class="fb-link" type="button" data-fb-open>Give feedback</button>
       <span class="lang-text"><a href="/impressum" hreflang="de">Deutsch</a> · <a href="/en/imprint" hreflang="en" aria-current="true">English</a></span>
       <button class="to-top" id="to-top" type="button">Back to top</button>
     </div>
   </div>
 </footer>
-<script src="/js/lenis.min.js" defer></script>
-<script src="/js/site.js?v=11" defer></script>
+<div class="fb">
+  <button class="fb-tab" id="fb-open" type="button" aria-expanded="false" aria-controls="fb-panel" data-track="Feedback-Lasche">Feedback</button>
+  <form class="fb-panel" id="fb-panel" action="/api/anfrage.php" method="post" novalidate hidden aria-label="Suggestion or question">
+    <div class="fb-head"><strong>Suggestion or question?</strong><button class="fb-x" id="fb-close" type="button" aria-label="Close">×</button></div>
+    <div class="fb-body">
+      <p class="fb-lead">What could I improve on this website?</p>
+      <input type="hidden" name="anliegen" value="feedback">
+      <label class="sr" for="fb-msg">Your suggestion</label>
+      <textarea id="fb-msg" name="nachricht" maxlength="1000" placeholder="Your idea, praise or a bug"></textarea>
+      <span class="err" id="efb-msg" hidden>Please write a few words.</span>
+      <label class="sr" for="fb-mail">Email for questions</label>
+      <input id="fb-mail" name="email" type="email" maxlength="150" autocomplete="email" placeholder="Email for questions (optional)">
+      <span class="err" id="efb-mail" hidden>Please check the email address.</span>
+      <div class="hp" aria-hidden="true"><input name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox"><span>I agree to the processing described in the <a href="/en/privacy">privacy policy</a>.</span></label>
+      <span class="err" id="efb-ok" hidden>Please confirm.</span>
+      <button class="btn btn--primary btn--small" id="fb-send" type="submit">Send</button>
+      <p class="msg" id="fb-res" hidden role="status"></p>
+    </div>
+  </form>
+</div>
+<script src="/js/lenis.min.js?v=79e3a064" defer></script>
+<script src="/js/site.js?v=6503c723" defer></script>
 </body>
 </html>
