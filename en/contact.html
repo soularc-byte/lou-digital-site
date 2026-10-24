@@ -25,7 +25,7 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=ce3bd9f6">
+<link rel="stylesheet" href="/css/site.css?v=7b7e4327">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);</script>
 </head>
 <body>
@@ -85,10 +85,11 @@
         <div class="field"><label for="f-tel">Phone <em>(optional)</em></label><input id="f-tel" name="telefon" type="tel" autocomplete="tel" maxlength="30" placeholder="+49 721 123456"><span class="err" id="e-tel" hidden>Please check the phone number.</span></div>
       </div>
       <div class="field"><label for="f-url">Your website <em id="url-hint">(optional)</em></label><input id="f-url" name="website_url" type="text" inputmode="url" maxlength="200" placeholder="your-company.com" autocomplete="url"><span class="err" id="e-url" hidden>Please enter an address like your-company.com.</span></div>
-      <div class="field"><label for="f-msg">Message <em>(optional)</em></label><textarea id="f-msg" name="nachricht" maxlength="1500" placeholder="What matters to you?"></textarea></div>
+      <div class="field"><label for="f-msg">Your message</label><textarea id="f-msg" name="nachricht" maxlength="1500" required placeholder="What is it about? For example: I need a new website for my bakery."></textarea><span class="err" id="e-msg" hidden>Please write briefly what it is about (at least 10 characters).</span></div>
       <div class="hp" aria-hidden="true"><label for="f-hp">Please leave empty</label><input id="f-hp" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="consent" for="f-ok"><input id="f-ok" name="einwilligung" value="1" type="checkbox"><span>I agree that Lou Digital stores my details to process this inquiry. Details in the <a href="/en/privacy">privacy policy</a>.</span></label>
-      <span class="err" id="e-ok" hidden>Please confirm your consent.</span>
+      <label class="consent" for="f-ok"><input id="f-ok" name="einwilligung" value="1" type="checkbox" required><span>I have read the <a href="/en/privacy">privacy policy</a> and agree that Lou Digital stores my details to process my inquiry. <b class="req" aria-hidden="true">*</b></span></label>
+      <span class="err err-box" id="e-ok" hidden role="alert">Please accept the privacy policy. Without your consent I cannot store or send your inquiry.</span>
+      <p class="req-note"><b class="req">*</b> Required. Your inquiry is only sent once name, email, message and consent are provided.</p>
       <button class="btn btn--primary" type="submit" id="f-send">Send inquiry</button>
       <p class="msg" id="f-res" hidden role="status"></p>
     </form>
@@ -147,14 +148,14 @@
       <input id="fb-mail" name="email" type="email" maxlength="150" autocomplete="email" placeholder="Email for questions (optional)">
       <span class="err" id="efb-mail" hidden>Please check the email address.</span>
       <div class="hp" aria-hidden="true"><input name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox"><span>I agree to the processing described in the <a href="/en/privacy">privacy policy</a>.</span></label>
-      <span class="err" id="efb-ok" hidden>Please confirm.</span>
+      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox" required><span>I accept the <a href="/en/privacy">privacy policy</a>. <b class="req" aria-hidden="true">*</b></span></label>
+      <span class="err err-box" id="efb-ok" hidden role="alert">Please accept the privacy policy first.</span>
       <button class="btn btn--primary btn--small" id="fb-send" type="submit">Send</button>
       <p class="msg" id="fb-res" hidden role="status"></p>
     </div>
   </form>
 </div>
 <script src="/js/lenis.min.js?v=79e3a064" defer></script>
-<script src="/js/site.js?v=6503c723" defer></script>
+<script src="/js/site.js?v=c41ffa45" defer></script>
 </body>
 </html>

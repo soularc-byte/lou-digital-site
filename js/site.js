@@ -146,6 +146,17 @@
     return box;
   }
   function mark(list) { list.forEach(function (x) { if (!x[0]) return; x[0].setAttribute('aria-invalid', String(!x[1])); var er = $(x[2]); if (er) er.hidden = x[1]; }); }
+  /* Zustimmung zur Datenschutzerklärung: ohne Haken wird nichts gesendet, Fehler gut sichtbar */
+  function consent(box, errId) {
+    var lab = box.closest('label'), er = $(errId), ok = box.checked;
+    if (er) er.hidden = ok;
+    if (lab) { lab.classList.toggle('invalid', !ok); if (!ok && !reduce && lab.animate) lab.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }], { duration: 360 }); }
+    box.setAttribute('aria-invalid', String(!ok));
+    return ok;
+  }
+  document.querySelectorAll('.consent input[type="checkbox"]').forEach(function (b) {
+    b.addEventListener('change', function () { if (b.checked) { var lab = b.closest('label'); if (lab) lab.classList.remove('invalid'); b.setAttribute('aria-invalid', 'false'); var er = lab && lab.nextElementSibling; if (er && er.classList.contains('err')) er.hidden = true; } });
+  });
   var reMail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, reUrl = /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i, reTel = /^[+\d][\d\s\/()-]{5,24}$/;
 
   /* ---------- Paket-Baukasten (/individuell) ---------- */
@@ -272,25 +283,26 @@
     sync();
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var name = $('f-name'), mail = $('f-mail'), url = $('f-url'), tel = $('f-tel'), ok = $('f-ok');
+      var name = $('f-name'), mail = $('f-mail'), url = $('f-url'), tel = $('f-tel'), ok = $('f-ok'), msg = $('f-msg');
       var uVal = url.value.trim(), tVal = tel.value.trim();
       var checks = [[name, name.value.trim().length > 1, 'e-name'], [mail, reMail.test(mail.value.trim()), 'e-mail'],
-                    [url, uVal ? reUrl.test(uVal) : !has('check'), 'e-url'], [tel, !tVal || reTel.test(tVal), 'e-tel']];
+                    [url, uVal ? reUrl.test(uVal) : !has('check'), 'e-url'], [tel, !tVal || reTel.test(tVal), 'e-tel'], [msg, msg.value.trim().length >= 10, 'e-msg']];
       if (has('termin')) { var dv = date.value, dd = dv ? new Date(dv + 'T12:00:00') : null; checks.push([date, !!dd && dv >= date.min && dv <= date.max && dd.getDay() !== 0, 'e-date']); }
       mark(checks);
-      $('e-ok').hidden = ok.checked;
-      var allOk = checks.every(function (x) { return x[1]; }) && ok.checked;
+      var cOk = consent(ok, 'e-ok');
+      var allOk = checks.every(function (x) { return x[1]; }) && cOk;
       if (!allOk) { res.className = 'msg bad'; res.textContent = T.check; res.hidden = false; (form.querySelector('[aria-invalid="true"]') || ok).focus(); return; }
       var data = new FormData(form);
       data.set('sprache', EN ? 'en' : 'de'); data.set('seite', location.pathname);
       btn.disabled = true; btn.textContent = T.sending; res.hidden = true;
-      var termin = has('termin');
+      var termin = has('termin'), ok0 = ok;
       post(form.getAttribute('action'), data).then(function () {
         track('f', termin ? 'termin' : 'kontakt');
         sentBox(form, termin ? T.okTermin : T.ok, T.okText);
       }).catch(function (er) {
         var f = er.data && er.data.fields;
-        var map = { name: ['f-name', 'e-name'], email: ['f-mail', 'e-mail'], website_url: ['f-url', 'e-url'], telefon: ['f-tel', 'e-tel'], termin: ['f-date', 'e-date'] };
+        var map = { name: ['f-name', 'e-name'], email: ['f-mail', 'e-mail'], website_url: ['f-url', 'e-url'], telefon: ['f-tel', 'e-tel'], termin: ['f-date', 'e-date'], nachricht: ['f-msg', 'e-msg'] };
+        if (f && f.indexOf('einwilligung') > -1) consent(ok0, 'e-ok');
         if (f && f.length) { mark(f.map(function (k) { var m = map[k]; return m ? [$(m[0]), false, m[1]] : null; }).filter(Boolean)); res.className = 'msg bad'; res.textContent = T.check; }
         else { res.className = 'msg bad'; res.innerHTML = T.fail + MAIL; }
         res.hidden = false; btn.disabled = false; sync();
@@ -306,8 +318,8 @@
       e.preventDefault();
       var n = $('a-name'), m = $('a-mail'), g = $('a-msg'), ok = $('a-ok');
       var checks = [[n, n.value.trim().length > 1, 'ea-name'], [m, reMail.test(m.value.trim()), 'ea-mail'], [g, g.value.trim().length > 4, 'ea-msg']];
-      mark(checks); $('ea-ok').hidden = ok.checked;
-      if (!(checks.every(function (x) { return x[1]; }) && ok.checked)) { aRes.className = 'msg bad'; aRes.textContent = T.check; aRes.hidden = false; (ask.querySelector('[aria-invalid="true"]') || ok).focus(); return; }
+      mark(checks); var cOk = consent(ok, 'ea-ok');
+      if (!(checks.every(function (x) { return x[1]; }) && cOk)) { aRes.className = 'msg bad'; aRes.textContent = T.check; aRes.hidden = false; (ask.querySelector('[aria-invalid="true"]') || ok).focus(); return; }
       var data = new FormData(ask); data.set('sprache', EN ? 'en' : 'de'); data.set('seite', location.pathname);
       aBtn.disabled = true; aBtn.textContent = T.sending;
       post(ask.getAttribute('action'), data).then(function () { track('f', 'frage'); sentBox(ask, T.askOk, T.okText); })
@@ -332,8 +344,8 @@
       var msg = $('fb-msg'), mail = $('fb-mail'), ok = $('fb-ok'), r = $('fb-res'), b = $('fb-send');
       var mv = mail.value.trim();
       var checks = [[msg, msg.value.trim().length > 4, 'efb-msg'], [mail, !mv || reMail.test(mv), 'efb-mail']];
-      mark(checks); $('efb-ok').hidden = ok.checked;
-      if (!(checks.every(function (x) { return x[1]; }) && ok.checked)) return;
+      mark(checks); var cOk = consent(ok, 'efb-ok');
+      if (!(checks.every(function (x) { return x[1]; }) && cOk)) return;
       var data = new FormData(fbPanel); data.set('sprache', EN ? 'en' : 'de'); data.set('seite', location.pathname);
       b.disabled = true; b.textContent = T.sending;
       post(fbPanel.getAttribute('action'), data).then(function () {

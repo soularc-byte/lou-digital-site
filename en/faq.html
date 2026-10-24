@@ -25,7 +25,7 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=ce3bd9f6">
+<link rel="stylesheet" href="/css/site.css?v=7b7e4327">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How much does a website cost?", "acceptedAnswer": {"@type": "Answer", "text": "The website in 7 days costs €390 as a pilot price for the first three clients, then €790 to €990. No VAT is charged because I’m a small business under § 19 UStG."}}, {"@type": "Question", "name": "Who owns the domain and website?", "acceptedAnswer": {"@type": "Answer", "text": "You do. Domain, hosting and accounts are in your name. If you want to switch later, you take everything with you."}}, {"@type": "Question", "name": "What do I need to get started?", "acceptedAnswer": {"@type": "Answer", "text": "A completed questionnaire with your logo, photos, services, opening hours and the details for the legal notice. The 7 days start from then. To begin, the free website check is enough."}}, {"@type": "Question", "name": "Do you write the legal notice and privacy policy?", "acceptedAnswer": {"@type": "Answer", "text": "I set up the structure and build the pages. The texts come from you or from a generator. For a binding review, it’s best to consult a lawyer."}}, {"@type": "Question", "name": "What’s included in maintenance?", "acceptedAnswer": {"@type": "Answer", "text": "Uptime monitoring, backups, updates and a short monthly report. M includes 30 minutes of changes per month, L includes one hour."}}, {"@type": "Question", "name": "How quickly will you get back to me?", "acceptedAnswer": {"@type": "Answer", "text": "You get a confirmation by email right away and a personal reply from me, usually within 24 hours on working days. If I take longer, you get 10% off your first package."}}, {"@type": "Question", "name": "Do you only work in Karlsruhe?", "acceptedAnswer": {"@type": "Answer", "text": "I’m based in Karlsruhe and happy to work with you in person. I also like to travel: appointments outside Karlsruhe are no problem. We’ll discuss it briefly up front, and I’ll include travel and time in the price. Everything else runs by email and phone across Germany."}}]}</script>
 </head>
@@ -59,8 +59,8 @@
       </div>
       <div class="field"><label for="a-msg">Your question</label><textarea id="a-msg" name="nachricht" maxlength="1500" required placeholder="What would you like to know?"></textarea><span class="err" id="ea-msg" hidden>Please write your question.</span></div>
       <div class="hp" aria-hidden="true"><label for="a-hp">Please leave empty</label><input id="a-hp" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="consent" for="a-ok"><input id="a-ok" name="einwilligung" value="1" type="checkbox"><span>I agree that Lou Digital stores my details to answer this question. Details in the <a href="/en/privacy">privacy policy</a>.</span></label>
-      <span class="err" id="ea-ok" hidden>Please confirm your consent.</span>
+      <label class="consent" for="a-ok"><input id="a-ok" name="einwilligung" value="1" type="checkbox" required><span>I have read the <a href="/en/privacy">privacy policy</a> and agree that Lou Digital stores my details to answer my question. <b class="req" aria-hidden="true">*</b></span></label>
+      <span class="err err-box" id="ea-ok" hidden role="alert">Please accept the privacy policy, otherwise I cannot send your question.</span>
       <button class="btn btn--primary" type="submit" id="a-send">Send question</button>
       <p class="msg" id="a-res" hidden role="status"></p>
     </form>
@@ -119,14 +119,14 @@
       <input id="fb-mail" name="email" type="email" maxlength="150" autocomplete="email" placeholder="Email for questions (optional)">
       <span class="err" id="efb-mail" hidden>Please check the email address.</span>
       <div class="hp" aria-hidden="true"><input name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox"><span>I agree to the processing described in the <a href="/en/privacy">privacy policy</a>.</span></label>
-      <span class="err" id="efb-ok" hidden>Please confirm.</span>
+      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox" required><span>I accept the <a href="/en/privacy">privacy policy</a>. <b class="req" aria-hidden="true">*</b></span></label>
+      <span class="err err-box" id="efb-ok" hidden role="alert">Please accept the privacy policy first.</span>
       <button class="btn btn--primary btn--small" id="fb-send" type="submit">Send</button>
       <p class="msg" id="fb-res" hidden role="status"></p>
     </div>
   </form>
 </div>
 <script src="/js/lenis.min.js?v=79e3a064" defer></script>
-<script src="/js/site.js?v=6503c723" defer></script>
+<script src="/js/site.js?v=c41ffa45" defer></script>
 </body>
 </html>

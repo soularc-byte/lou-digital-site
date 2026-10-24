@@ -25,7 +25,7 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=ce3bd9f6">
+<link rel="stylesheet" href="/css/site.css?v=7b7e4327">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);</script>
 </head>
 <body>
@@ -85,10 +85,11 @@
         <div class="field"><label for="f-tel">Telefon <em>(optional)</em></label><input id="f-tel" name="telefon" type="tel" autocomplete="tel" maxlength="30" placeholder="0721 123456"><span class="err" id="e-tel" hidden>Bitte prüfen Sie die Telefonnummer.</span></div>
       </div>
       <div class="field"><label for="f-url">Ihre Website <em id="url-hint">(optional)</em></label><input id="f-url" name="website_url" type="text" inputmode="url" maxlength="200" placeholder="ihre-firma.de" autocomplete="url"><span class="err" id="e-url" hidden>Bitte geben Sie eine Adresse wie ihre-firma.de ein.</span></div>
-      <div class="field"><label for="f-msg">Nachricht <em>(optional)</em></label><textarea id="f-msg" name="nachricht" maxlength="1500" placeholder="Was ist Ihnen wichtig?"></textarea></div>
+      <div class="field"><label for="f-msg">Ihre Nachricht</label><textarea id="f-msg" name="nachricht" maxlength="1500" required placeholder="Worum geht es? Zum Beispiel: Ich brauche eine neue Website für meine Bäckerei."></textarea><span class="err" id="e-msg" hidden>Bitte schreiben Sie kurz, worum es geht (mindestens 10 Zeichen).</span></div>
       <div class="hp" aria-hidden="true"><label for="f-hp">Bitte leer lassen</label><input id="f-hp" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="consent" for="f-ok"><input id="f-ok" name="einwilligung" value="1" type="checkbox"><span>Ich bin einverstanden, dass Lou Digital meine Angaben zur Bearbeitung der Anfrage speichert. Details in der <a href="/datenschutz">Datenschutzerklärung</a>.</span></label>
-      <span class="err" id="e-ok" hidden>Bitte bestätigen Sie die Einwilligung.</span>
+      <label class="consent" for="f-ok"><input id="f-ok" name="einwilligung" value="1" type="checkbox" required><span>Ich habe die <a href="/datenschutz">Datenschutzerklärung</a> gelesen und bin einverstanden, dass Lou Digital meine Angaben zur Bearbeitung meiner Anfrage speichert. <b class="req" aria-hidden="true">*</b></span></label>
+      <span class="err err-box" id="e-ok" hidden role="alert">Bitte akzeptieren Sie die Datenschutzerklärung. Ohne Ihre Zustimmung kann ich die Anfrage nicht speichern und nicht absenden.</span>
+      <p class="req-note"><b class="req">*</b> Pflichtfeld. Gesendet wird erst, wenn Name, E-Mail, Nachricht und Zustimmung vorhanden sind.</p>
       <button class="btn btn--primary" type="submit" id="f-send">Anfrage senden</button>
       <p class="msg" id="f-res" hidden role="status"></p>
     </form>
@@ -147,14 +148,14 @@
       <input id="fb-mail" name="email" type="email" maxlength="150" autocomplete="email" placeholder="E-Mail für Rückfragen (optional)">
       <span class="err" id="efb-mail" hidden>Bitte prüfen Sie die E-Mail-Adresse.</span>
       <div class="hp" aria-hidden="true"><input name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox"><span>Einverstanden mit der Verarbeitung laut <a href="/datenschutz">Datenschutz</a>.</span></label>
-      <span class="err" id="efb-ok" hidden>Bitte bestätigen.</span>
+      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox" required><span>Ich akzeptiere die <a href="/datenschutz">Datenschutzerklärung</a>. <b class="req" aria-hidden="true">*</b></span></label>
+      <span class="err err-box" id="efb-ok" hidden role="alert">Bitte akzeptieren Sie zuerst die Datenschutzerklärung.</span>
       <button class="btn btn--primary btn--small" id="fb-send" type="submit">Senden</button>
       <p class="msg" id="fb-res" hidden role="status"></p>
     </div>
   </form>
 </div>
 <script src="/js/lenis.min.js?v=79e3a064" defer></script>
-<script src="/js/site.js?v=6503c723" defer></script>
+<script src="/js/site.js?v=c41ffa45" defer></script>
 </body>
 </html>
