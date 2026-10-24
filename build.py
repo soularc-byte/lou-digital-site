@@ -7,6 +7,7 @@ ROOT = pathlib.Path(__file__).parent
 DIST = ROOT / 'dist'
 SITE = 'https://lou-digital.de'
 EMAIL = 'info@lou-digital.de'
+EMAIL_ADRIAN = 'adrian.semlinger@lou-digital.de'
 PHONE = '+49 156 30163539'          # z. B. '+49 176 1234567' – sobald gesetzt, erscheint die Nummer in Fußleiste, Kontakt und Impressum
 ADDRESS = ('Lachenweg 34', '76139 Karlsruhe')
 VERSION = '12'
@@ -266,7 +267,7 @@ def automatik_block(lang, full):
     <div class="wrap split split--rev">
       <div class="stage stage--petrol" data-reveal="scale">{fig('mail', '66%')}</div>
       <div class="copy">
-        <h2 class="h2" data-reveal>{L(lang, 'Anfrage-Automatik', 'Inquiry automation')}</h2>
+        {'' if full else f'<h2 class="h2" data-reveal>{L(lang, "Anfrage-Automatik", "Inquiry automation")}</h2>'}
         <p class="muted" data-reveal style="--d:.05s">{L(lang, 'Jede Anfrage aus Ihrem Formular kommt sofort bei Ihnen an. Kein Postfach durchsuchen, keine Anfrage geht verloren.', 'Every inquiry from your form reaches you instantly. No digging through your inbox, no inquiry gets lost.')}</p>
         <ol class="flow" data-reveal style="--d:.1s">{lis}</ol>
         {extra}
@@ -281,11 +282,11 @@ def check_block(lang, full):
             ('ok', L(lang, 'Impressum vorhanden', 'Legal notice present')), ('no', L(lang, 'Datenschutzerklärung vorhanden', 'Privacy policy present')),
             ('ok', L(lang, 'Aussagekräftiger Seitentitel', 'Meaningful page title'))]
     lis = ''.join(f'<li class="{c}"><b aria-hidden="true">{"✓" if c=="ok" else "✕"}</b><span>{e(t)}</span><em>{L(lang, "bestanden", "passed") if c=="ok" else L(lang, "fehlt", "missing")}</em></li>' for c, t in rows)
-    more = f'<a class="link" href="{url("check", lang)}#sofort">{L(lang, "Sofort selbst prüfen", "Check it yourself now")}</a>'
+    more = '' if full else f'<a class="link" href="{url("check", lang)}#sofort">{L(lang, "Sofort selbst prüfen", "Check it yourself now")}</a>'
     return f'''<section class="sec tint" id="check">
     <div class="wrap split">
       <div class="copy">
-        <h2 class="h2" data-reveal>{L(lang, 'Website-Check', 'Website check')}</h2>
+        {f'<h2 class="h2" data-reveal>{L(lang, "So sieht das Ergebnis aus", "What the result looks like")}</h2>' if full else f'<h2 class="h2" data-reveal>{L(lang, "Website-Check", "Website check")}</h2>'}
         <p data-reveal style="--d:.05s">{L(lang, 'Bevor ich etwas anbiete, prüfe ich Ihre Website an fünf Punkten. Sie bekommen ein Blatt mit dem Ergebnis und je einem Satz, was ein fehlender Punkt Sie kostet. Kostenlos und unverbindlich.', 'Before I offer anything, I check your website on five points. You get one page with the result and a sentence on what each missing point costs you. Free and without obligation.')}</p>
         <div class="result" role="group" aria-label="{L(lang, 'Beispiel eines Website-Checks', 'Example of a website check')}" data-reveal style="--d:.1s">
           <div class="result-head"><span class="muted">{L(lang, 'Beispiel: ihre-firma.de', 'Example: your-company.com')}</span><span class="score">3<span>/5</span></span></div>
@@ -349,7 +350,7 @@ def home(lang):
     teasers = [
         ('websites', 'petrol', 'web', L(lang, 'Website in 7 Tagen', 'Website in 7 days'), L(lang, 'Onepager oder bis zu 5 Seiten, ab 390 €.', 'One-pager or up to 5 pages, from €390.')),
         ('automatik', 'ink', 'mail', L(lang, 'Anfrage-Automatik', 'Inquiry automation'), L(lang, 'Jede Anfrage sofort auf Ihrem Handy.', 'Every inquiry instantly on your phone.')),
-        ('check', 'mint dots', 'clip', L(lang, 'Website-Check', 'Website check'), L(lang, 'Fünf Prüfpunkte, kostenlos.', 'Five checkpoints, free of charge.')),
+        ('check', 'mint', 'clip', L(lang, 'Website-Check', 'Website check'), L(lang, 'Fünf Prüfpunkte, kostenlos.', 'Five checkpoints, free of charge.')),
         ('individuell', 'lime', 'box', L(lang, 'Individuelles Paket', 'Custom package'), L(lang, 'Bausteine wählen, Preis sofort sehen.', 'Pick building blocks, see the price instantly.')),
     ]
     tz = ''.join(f'<a class="teaser teaser--{c}" href="{url(k, lang)}" data-reveal style="--d:{i*0.06:.2f}s"><span><h3>{e(t)}</h3><p>{e(p)}</p><span class="go">{L(lang, "Ansehen", "View")}</span></span><img src="{A(f"/img/fig-{f}.webp")}" width="900" height="900" alt="" loading="lazy" decoding="async"></a>' for i, (k, c, f, t, p) in enumerate(teasers))
@@ -415,7 +416,7 @@ def sub_check(lang):
            (L(lang, 'Impressum', 'Legal notice'), L(lang, 'Ist ein Impressum vorhanden und erreichbar? Es ist für Unternehmen Pflicht.', 'Is a legal notice present and reachable? It’s mandatory for businesses in Germany.')),
            (L(lang, 'Datenschutz', 'Privacy'), L(lang, 'Gibt es eine Datenschutzerklärung? Fehlt sie, drohen Abmahnungen.', 'Is there a privacy policy? Without one, you risk formal warnings.')),
            (L(lang, 'Seitentitel', 'Page title'), L(lang, 'Sagt der Titel, was Sie anbieten und wo? Davon hängt ab, ob Google Sie findet.', 'Does the title say what you offer and where? It decides whether Google finds you.'))]
-    rows = ''.join(f'<div data-reveal style="--d:{i*0.05:.2f}s"><dt>{e(a)}</dt><dd>{e(b)}</dd></div>' for i, (a, b) in enumerate(pts))
+    cards = ''.join(f'<li class="cp" data-reveal style="--d:{i*0.07:.2f}s"><span class="cp-n">0{i+1}</span><h3>{e(a)}</h3><p>{e(b)}</p></li>' for i, (a, b) in enumerate(pts))
     quick = f'''<section class="sec sec--tight" id="sofort"><div class="wrap">
     <div class="quick" data-reveal="scale">
       <div class="quick-copy"><h2 class="h2">{L(lang, 'Sofort-Check', 'Instant check')}</h2><p>{L(lang, 'Geben Sie Ihre Adresse ein. In wenigen Sekunden sehen Sie, welche der fünf Punkte Ihre Website erfüllt. Kostenlos, ohne Anmeldung.', 'Enter your address. Within seconds you see which of the five points your website meets. Free, no sign-up.')}</p></div>
@@ -429,9 +430,11 @@ def sub_check(lang):
     </div>
   </div></section>'''
     body = page_hero(L(lang, 'Website-Check', 'Website check'), L(lang, 'Fünf Prüfpunkte, sofort online oder als ausführliches Blatt, kostenlos. Danach wissen Sie, was Ihre Website gerade kostet.', 'Five checkpoints, instantly online or as a detailed sheet, free. Afterwards you know what your website is costing you.')) + quick + check_block(lang, True) + f'''
-  <section class="sec"><div class="wrap split">
-    <div class="copy"><h2 class="h2" data-reveal>{L(lang, 'Was ich prüfe', 'What I check')}</h2><dl class="spec">{rows}</dl></div>
-    <div></div>
+  <section class="sec checkpoints"><div class="wrap">
+    <div class="cp-head"><h2 class="h2" data-reveal>{L(lang, 'Was ich prüfe', 'What I check')}</h2>
+    <p class="lead" data-reveal style="--d:.06s">{L(lang, 'Fünf Punkte, die darüber entscheiden, ob Besucher Ihnen vertrauen, Google Sie findet und Ihre Website rechtlich sauber ist.', 'Five points that decide whether visitors trust you, Google finds you and your website is legally sound.')}</p></div>
+    <ol class="cp-grid">{cards}</ol>
+    <div class="cp-cta" data-reveal><a class="btn btn--primary" href="#sofort">{L(lang, 'Jetzt kostenlos prüfen', 'Check for free now')}</a></div>
   </div></section>''' + closer(lang)
     return page(lang, 'check', L(lang, 'Kostenloser Website-Check – Lou Digital', 'Free website check – Lou Digital'), L(lang, 'Ich prüfe Ihre Website an fünf Punkten: HTTPS, Handy, Impressum, Datenschutz, Seitentitel. Kostenlos und unverbindlich.', 'I check your website on five points: HTTPS, mobile, legal notice, privacy policy, page title. Free and without obligation.'), body)
 
@@ -491,8 +494,8 @@ def sub_ueber(lang):
         <p class="lead" data-reveal>{L(lang, 'Websites und Automatisierung, die nach der Übergabe einfach weiterlaufen.', 'Websites and automation that simply keep running after handover.')}</p>
         <p data-reveal style="--d:.05s">{L(lang, 'Ich komme aus dem Kaufmännischen: Einkauf, Angebote, Rechnungswesen. Deshalb weiß ich, wie viel Zeit in Abläufen steckt, die sich automatisieren lassen, und wie wichtig ein klarer Preis vor dem Start ist.', 'My background is in business: purchasing, quotes and accounting. That’s why I know how much time goes into processes that could be automated, and how important a clear price is before you start.')}</p>
         <p data-reveal style="--d:.1s">{L(lang, 'Ich arbeite mit festen Paketen und Werkzeugen, die nach der Übergabe weiterlaufen. Domain und Zugänge laufen auf Ihren Namen. Was ich baue, erkläre ich so, dass Sie es ohne mich bedienen können.', 'I work with fixed packages and tools that keep running after handover. Domain and accounts are registered in your name. I explain what I build so you can run it without me.')}</p>
-        <dl class="spec" data-reveal style="--d:.15s">{spec_rows([(L(lang, 'Sitz', 'Based in'), 'Karlsruhe'), (L(lang, 'Arbeitsweise', 'Way of working'), L(lang, 'Feste Pakete, ein Ansprechpartner', 'Fixed packages, one point of contact')), (L(lang, 'Kontakt', 'Contact'), f'<a class="mailto" href="mailto:{EMAIL}">{EMAIL}</a>')])}</dl>
-        <div class="row-actions" data-reveal>{btn(url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an inquiry'))}</div>
+        <dl class="spec" data-reveal style="--d:.15s">{spec_rows([(L(lang, 'Sitz', 'Based in'), 'Karlsruhe'), (L(lang, 'Arbeitsweise', 'Way of working'), L(lang, 'Feste Pakete, ein Ansprechpartner', 'Fixed packages, one point of contact')), (L(lang, 'E-Mail', 'Email'), f'<a class="mailto" href="mailto:{EMAIL_ADRIAN}">{EMAIL_ADRIAN}</a>'), (L(lang, 'Telefon', 'Phone'), f'<a class="mailto" href="tel:{PHONE.replace(" ", "")}">{e(PHONE)}</a>'), (L(lang, 'Allgemein', 'General'), f'<a class="mailto" href="mailto:{EMAIL}">{EMAIL}</a>')])}</dl>
+        <div class="row-actions" data-reveal>{btn(url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an inquiry'))}<a class="btn btn--line" href="tel:{PHONE.replace(' ', '')}" data-track="Anruf Über mich">{L(lang, 'Anrufen', 'Call')}</a><a class="link" href="mailto:{EMAIL_ADRIAN}">{L(lang, 'E-Mail an Adrian', 'Email Adrian')}</a></div>
       </div>
   </div></section>''' + closer(lang)
     return page(lang, 'ueber', L(lang, 'Über mich – Lou Digital', 'About me – Lou Digital'), L(lang, 'Adrian Semlinger, Lou Digital in Karlsruhe: Websites und Automatisierung mit festen Paketen und klaren Preisen.', 'Adrian Semlinger, Lou Digital in Karlsruhe: websites and automation with fixed packages and clear prices.'), body)
@@ -536,8 +539,8 @@ def sub_kontakt(lang):
     so = ''.join(f'<option value="{v}">{e(t)}</option>' for v, t in slots); ao = ''.join(f'<option value="{v}">{e(t)}</option>' for v, t in arts)
     tel = PHONE.replace(' ', '')
     body = page_hero(L(lang, 'Anfrage senden', 'Send an inquiry'), L(lang, 'Wählen Sie, was Sie interessiert, oder vereinbaren Sie direkt ein Gespräch. Sie bekommen sofort eine Bestätigung und von mir eine persönliche Antwort.', 'Choose what interests you, or book a call straight away. You get a confirmation right away and a personal reply from me.')) + f'''
-  <section class="sec sec--tight"><div class="wrap close">
-    <div>
+  <section class="sec sec--tight"><div class="wrap close kontakt-grid">
+    <div class="k-side">
       <div class="contact-quick" data-reveal>
         <a class="cq" href="tel:{tel}" data-track="Anruf"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z" fill="currentColor"/></svg></span><span><b>{L(lang, 'Anrufen', 'Call')}</b><small>{e(PHONE)}</small></span></a>
         <a class="cq" href="mailto:{EMAIL}" data-track="E-Mail"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zm2 .9v.3l7 4.6 7-4.6v-.3z" fill="currentColor"/></svg></span><span><b>E-Mail</b><small>{EMAIL}</small></span></a>
