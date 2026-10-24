@@ -297,3 +297,13 @@ html.js [data-reveal="scale"].in { transform: none; }
 .field input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .field input[type="date"]::-webkit-calendar-picker-indicator { opacity: .7; }
 @media (max-width: 560px) { .row3 { grid-template-columns: 1fr; } .row3 .f-slot { grid-column: auto; } }
+
+/* Pflichtfelder und Zustimmung */
+.req { color: var(--danger); font-weight: 700; }
+.req-note { font-size: 13px; color: var(--ink-muted); margin-top: -6px; }
+.consent { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-field); background: var(--surface); transition: border-color .2s var(--ease), background-color .2s var(--ease); cursor: pointer; }
+.consent a { color: var(--brand); font-weight: 600; }
+.consent.invalid { border-color: var(--danger); background: #fdf1ef; box-shadow: 0 0 0 3px rgba(179,38,30,.12); }
+.consent.small { padding: 10px 12px; }
+.err-box { display: block; padding: 10px 12px; border-radius: var(--r-field); background: #fdf1ef; border: 1px solid rgba(179,38,30,.35); font-weight: 600; }
+.err-box[hidden] { display: none; }

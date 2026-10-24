@@ -55,6 +55,7 @@ $errors = [];
 if ($kind !== 'feedback' && mb_strlen($name) < 2) $errors[] = 'name';
 if ($kind !== 'feedback' || $email !== '') { if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'email'; }
 if (in_array($kind, ['frage', 'feedback'], true) && mb_strlen($msg) < 5) $errors[] = 'nachricht';
+if ($kind === 'anfrage' && mb_strlen($msg) < 10) $errors[] = 'nachricht';
 if ($phone !== '' && !preg_match('/^[+\d][\d\s\/()-]{5,24}$/', $phone)) $errors[] = 'telefon';
 if (in_array('check', $sel, true) && $url === '') $errors[] = 'website_url';
 if ($url !== '' && !ld_norm_url($url)) $errors[] = 'website_url';
