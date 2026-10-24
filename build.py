@@ -7,7 +7,7 @@ ROOT = pathlib.Path(__file__).parent
 DIST = ROOT / 'dist'
 SITE = 'https://lou-digital.de'
 EMAIL = 'info@lou-digital.de'
-PHONE = ''          # z. B. '+49 176 1234567' – sobald gesetzt, erscheint die Nummer in Fußleiste, Kontakt und Impressum
+PHONE = '+49 156 30163539'          # z. B. '+49 176 1234567' – sobald gesetzt, erscheint die Nummer in Fußleiste, Kontakt und Impressum
 ADDRESS = ('Lachenweg 34', '76139 Karlsruhe')
 VERSION = '10'
 
@@ -578,12 +578,12 @@ BUILDERS = {'home': home, 'websites': sub_websites, 'automatik': sub_automatik, 
             'ueber': sub_ueber, 'fragen': sub_fragen, 'kontakt': sub_kontakt, 'impressum': sub_impressum, 'datenschutz': sub_datenschutz}
 
 def outpath(path):
-    if path.endswith('/'): return DIST / path.lstrip('/') / 'index.html'
+    if path.endswith('/'): return DIST / path.lstrip('/') / 'start.html'
     return DIST / (path.lstrip('/') + '.html')
 
 HTACCESS = r'''# Lou Digital, Version 10 (19.10.2026)
 Options -Indexes -MultiViews
-DirectoryIndex index.html
+DirectoryIndex start.html
 ErrorDocument 404 /404.html
 AddDefaultCharset utf-8
 AddType font/woff2 .woff2
@@ -595,8 +595,11 @@ RewriteEngine On
 RewriteCond %{HTTP_HOST} ^www\.lou-digital\.de$ [NC]
 RewriteRule ^ https://lou-digital.de%{REQUEST_URI} [R=301,L]
 # direkte .html-Aufrufe auf saubere Adressen umleiten (nur echte Anfragen, keine Schleifen)
-RewriteCond %{THE_REQUEST} \s/+((?:[^\s?]*/)?)index\.html[\s?] [NC]
+RewriteCond %{THE_REQUEST} \s/+((?:[^\s?]*/)?)(?:index|start)\.html[\s?] [NC]
 RewriteRule ^ /%1 [R=301,L]
+# Startseiten werden intern aus start.html geliefert (index.html gibt es nicht)
+RewriteRule ^$ /start.html [L]
+RewriteRule ^en/?$ /en/start.html [L]
 RewriteCond %{THE_REQUEST} \s/+([^\s?]+?)\.html[\s?] [NC]
 RewriteCond %{REQUEST_URI} !^/404\.html$
 RewriteRule ^ /%1 [R=301,L]
