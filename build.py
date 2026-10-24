@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
-"""Lou Digital – statische Website, Version 10 (19.10.2026).
+"""Lou Digital – statische Website, Version 12 (24.10.2026).
 Erzeugt alle Seiten DE/EN mit sauberen Adressen (/websites, /en/websites ...) nach dist/."""
-import html, json, pathlib, shutil
+import base64, hashlib, html, json, pathlib, shutil
 
 ROOT = pathlib.Path(__file__).parent
 DIST = ROOT / 'dist'
 SITE = 'https://lou-digital.de'
 EMAIL = 'info@lou-digital.de'
 PHONE = '+49 156 30163539'          # z. B. '+49 176 1234567' – sobald gesetzt, erscheint die Nummer in Fußleiste, Kontakt und Impressum
-MAPS = 'https://www.google.com/maps/search/?api=1&amp;query=Lachenweg+34+76139+Karlsruhe'
 ADDRESS = ('Lachenweg 34', '76139 Karlsruhe')
-VERSION = '11'
+VERSION = '12'
 
 e = html.escape
+
+def A(path):
+    """Pfad mit Inhalts-Fingerabdruck, damit Browser geänderte Dateien sofort neu laden."""
+    f = ROOT / 'static' / path.lstrip('/')
+    return f'{path}?v={hashlib.md5(f.read_bytes()).hexdigest()[:8]}' if f.is_file() else path
+SITE_CSS = (ROOT / 'static/css/base.css').read_text() + (ROOT / 'static/css/extra.css').read_text()
+CSS_URL = '/css/site.css?v=' + hashlib.md5(SITE_CSS.encode()).hexdigest()[:8]
+INLINE_JS = "document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);"
+INLINE_HASH = base64.b64encode(hashlib.sha256(INLINE_JS.encode()).digest()).decode()
 
 # Seiten: Schlüssel -> (DE-Pfad, EN-Pfad)
 PAGES = {
@@ -41,7 +49,7 @@ def slot(a, b, show):
 
 def kontakt_url(lang, anliegen=None):
     u = url('kontakt', lang)
-    return u + (f'?anliegen={anliegen}' if anliegen else '')
+    return u + (f'?pakete={anliegen}' if anliegen else '')
 
 LOGO = '<svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" fill="#0b6e69"/><path d="M12.5 9v15.5h9.5" fill="none" stroke="#ffffff" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="24.5" r="2.8" fill="#d2f05a"/></svg>'
 
@@ -79,7 +87,7 @@ def footer(lang, key):
     <div class="foot-cols">
       <div data-reveal style="--d:.05s"><h3>{L(lang, 'Leistungen', 'Services')}</h3><ul>
         <li><a href="{l('websites')}">{L(lang, 'Website in 7 Tagen', 'Website in 7 days')}</a></li>
-        <li><a href="{l('automatik')}">{L(lang, 'Anfrage-Automatik', 'Enquiry automation')}</a></li>
+        <li><a href="{l('automatik')}">{L(lang, 'Anfrage-Automatik', 'Inquiry automation')}</a></li>
         <li><a href="{l('check')}">{L(lang, 'Kostenloser Website-Check', 'Free website check')}</a></li>
         <li><a href="{l('pakete')}">{L(lang, 'Kundenumfrage und Betreuung', 'Customer survey and maintenance')}</a></li>
       </ul></div>
@@ -88,17 +96,17 @@ def footer(lang, key):
         <li><a href="{l('individuell')}">{L(lang, 'Individuelles Paket', 'Custom package')}</a></li>
         <li><a href="{l('ueber')}">{L(lang, 'Über mich', 'About me')}</a></li>
         <li><a href="{l('fragen')}">{L(lang, 'Häufige Fragen', 'FAQ')}</a></li>
-        <li><a href="{l('kontakt')}">{L(lang, 'Anfrage senden', 'Send an enquiry')}</a></li>
+        <li><a href="{l('kontakt')}">{L(lang, 'Anfrage senden', 'Send an inquiry')}</a></li>
       </ul></div>
       <div data-reveal style="--d:.15s"><h3>{L(lang, 'Rechtliches', 'Legal')}</h3><ul>
         <li><a href="{l('impressum')}">{L(lang, 'Impressum', 'Legal notice')}</a></li>
         <li><a href="{l('datenschutz')}">{L(lang, 'Datenschutz', 'Privacy policy')}</a></li>
-        <li class="muted">{L(lang, 'Keine Cookies, kein Tracking', 'No cookies, no tracking')}</li>
+        <li class="muted">{L(lang, 'Keine Cookies', 'No cookies')}</li>
         <li class="muted">{L(lang, 'Kleinunternehmer nach § 19 UStG', 'Small business under § 19 UStG')}</li>
       </ul></div>
       <div data-reveal style="--d:.2s"><h3>{L(lang, 'Kontakt', 'Contact')}</h3><ul>
         <li>Adrian Semlinger</li>
-        <li><a href="{MAPS}" target="_blank" rel="noopener">{ADDRESS[0]}, {ADDRESS[1]}</a></li>
+        <li>{L(lang, 'Karlsruhe', 'Karlsruhe, Germany')}</li>
         <li><a href="mailto:{EMAIL}">{EMAIL}</a></li>
         {phone}
         <li class="muted">{L(lang, 'Antwort in der Regel innerhalb von 24 Stunden', 'Reply usually within 24 hours')}</li>
@@ -106,11 +114,36 @@ def footer(lang, key):
     </div>
     <div class="foot-bar">
       <span>© 2026 Lou Digital · Adrian Semlinger</span>
+      <button class="fb-link" type="button" data-fb-open>{L(lang, 'Feedback geben', 'Give feedback')}</button>
       <span class="lang-text"><a href="{url(key, 'de')}" hreflang="de"{' aria-current="true"' if lang=='de' else ''}>Deutsch</a> · <a href="{url(key, 'en')}" hreflang="en"{' aria-current="true"' if lang=='en' else ''}>English</a></span>
       <button class="to-top" id="to-top" type="button">{L(lang, 'Nach oben', 'Back to top')}</button>
     </div>
   </div>
-</footer>'''
+</footer>
+{feedback(lang)}'''
+
+def feedback(lang):
+    return f'''<div class="fb">
+  <button class="fb-tab" id="fb-open" type="button" aria-expanded="false" aria-controls="fb-panel" data-track="Feedback-Lasche">{L(lang, 'Feedback', 'Feedback')}</button>
+  <form class="fb-panel" id="fb-panel" action="/api/anfrage.php" method="post" novalidate hidden aria-label="{L(lang, 'Vorschlag oder Frage', 'Suggestion or question')}">
+    <div class="fb-head"><strong>{L(lang, 'Vorschlag oder Frage?', 'Suggestion or question?')}</strong><button class="fb-x" id="fb-close" type="button" aria-label="{L(lang, 'Schließen', 'Close')}">×</button></div>
+    <div class="fb-body">
+      <p class="fb-lead">{L(lang, 'Was kann ich an dieser Website besser machen?', 'What could I improve on this website?')}</p>
+      <input type="hidden" name="anliegen" value="feedback">
+      <label class="sr" for="fb-msg">{L(lang, 'Ihr Vorschlag', 'Your suggestion')}</label>
+      <textarea id="fb-msg" name="nachricht" maxlength="1000" placeholder="{L(lang, 'Ihr Vorschlag, Lob oder Fehler', 'Your idea, praise or a bug')}"></textarea>
+      <span class="err" id="efb-msg" hidden>{L(lang, 'Bitte ein paar Worte schreiben.', 'Please write a few words.')}</span>
+      <label class="sr" for="fb-mail">{L(lang, 'E-Mail für Rückfragen', 'Email for questions')}</label>
+      <input id="fb-mail" name="email" type="email" maxlength="150" autocomplete="email" placeholder="{L(lang, 'E-Mail für Rückfragen (optional)', 'Email for questions (optional)')}">
+      <span class="err" id="efb-mail" hidden>{L(lang, 'Bitte prüfen Sie die E-Mail-Adresse.', 'Please check the email address.')}</span>
+      <div class="hp" aria-hidden="true"><input name="website" type="text" tabindex="-1" autocomplete="off"></div>
+      <label class="consent small" for="fb-ok"><input id="fb-ok" name="einwilligung" value="1" type="checkbox"><span>{L(lang, f'Einverstanden mit der Verarbeitung laut <a href="{url("datenschutz", lang)}">Datenschutz</a>.', f'I agree to the processing described in the <a href="{url("datenschutz", lang)}">privacy policy</a>.')}</span></label>
+      <span class="err" id="efb-ok" hidden>{L(lang, 'Bitte bestätigen.', 'Please confirm.')}</span>
+      <button class="btn btn--primary btn--small" id="fb-send" type="submit">{L(lang, 'Senden', 'Send')}</button>
+      <p class="msg" id="fb-res" hidden role="status"></p>
+    </div>
+  </form>
+</div>'''
 
 def page(lang, key, title, desc, body, noindex=False, extra_head=''):
     canon = SITE + url(key, lang)
@@ -127,16 +160,16 @@ def page(lang, key, title, desc, body, noindex=False, extra_head=''):
 <meta name="description" content="{e(desc)}">
 <link rel="canonical" href="{canon}">
 {alts}
-{robots}<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+{robots}<link rel="icon" href="{A('/favicon.svg')}" type="image/svg+xml">
 <meta name="theme-color" content="#f5f6f3">
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{canon}">
-<meta property="og:image" content="{SITE}/img/fig-web.webp">
+<meta property="og:image" content="{SITE}{A('/img/fig-web.webp')}">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v={VERSION}">
-<script>document.documentElement.classList.add('js');setTimeout(function(){{if(!window.__ldReady)document.documentElement.classList.remove('js')}},2500);</script>
+<link rel="stylesheet" href="{CSS_URL}">
+<script>{INLINE_JS}</script>
 {extra_head}</head>
 <body>
 {header(lang, key)}
@@ -144,8 +177,8 @@ def page(lang, key, title, desc, body, noindex=False, extra_head=''):
 {body}
 </main>
 {footer(lang, key)}
-<script src="/js/lenis.min.js" defer></script>
-<script src="/js/site.js?v={VERSION}" defer></script>
+<script src="{A('/js/lenis.min.js')}" defer></script>
+<script src="{A('/js/site.js')}" defer></script>
 </body>
 </html>
 '''
@@ -155,7 +188,7 @@ def btn(href, text, kind='primary', small=False):
     return f'<a class="btn btn--{kind}{" btn--small" if small else ""}" href="{href}">{e(text)}</a>'
 
 def fig(name, f, extra=''):
-    return f'<img class="fig" src="/img/fig-{name}.webp" width="900" height="900" alt="" style="--f:{f}" decoding="async"{extra}>'
+    return f'<img class="fig" src="{A(f"/img/fig-{name}.webp")}" width="900" height="900" alt="" style="--f:{f}" decoding="async"{extra}>'
 
 def closer(lang):
     """Abschluss jeder Unterseite: Ablauf + Knopf zum Formular."""
@@ -179,7 +212,7 @@ def closer(lang):
     </div>
   </div>
   <div class="wrap" style="margin-top:36px" data-reveal>
-    <div class="row-actions">{btn(kontakt_url(lang, 'check'), L(lang, 'Kostenlosen Check anfordern', 'Request a free check'))}{btn(url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an enquiry'), 'line')}</div>
+    <div class="row-actions">{btn(kontakt_url(lang, 'check'), L(lang, 'Kostenlosen Check anfordern', 'Request a free check'))}{btn(url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an inquiry'), 'line')}</div>
   </div>
 </section>'''
 
@@ -220,7 +253,7 @@ def websites_block(lang, full):
 
 def automatik_block(lang, full):
     steps = [L(lang, 'Ihr Kunde füllt das Formular auf Ihrer Website aus.', 'Your customer fills in the form on your website.'),
-             L(lang, 'Die Anfrage landet geordnet in Ihrer Tabelle.', 'The enquiry lands neatly in your spreadsheet.'),
+             L(lang, 'Die Anfrage landet geordnet in Ihrer Tabelle.', 'The inquiry lands neatly in your spreadsheet.'),
              L(lang, 'Sie bekommen sofort eine Nachricht aufs Handy.', 'You get a message on your phone right away.'),
              L(lang, 'Ihr Kunde erhält automatisch eine Bestätigung.', 'Your customer automatically receives a confirmation.'),
              L(lang, 'Nach dem Auftrag geht eine Bitte um Bewertung raus.', 'After the job, a review request goes out.')]
@@ -233,8 +266,8 @@ def automatik_block(lang, full):
     <div class="wrap split split--rev">
       <div class="stage stage--petrol" data-reveal="scale">{fig('mail', '66%')}</div>
       <div class="copy">
-        <h2 class="h2" data-reveal>{L(lang, 'Anfrage-Automatik', 'Enquiry automation')}</h2>
-        <p class="muted" data-reveal style="--d:.05s">{L(lang, 'Jede Anfrage aus Ihrem Formular kommt sofort bei Ihnen an. Kein Postfach durchsuchen, keine Anfrage geht verloren.', 'Every enquiry from your form reaches you instantly. No digging through your inbox, no enquiry gets lost.')}</p>
+        <h2 class="h2" data-reveal>{L(lang, 'Anfrage-Automatik', 'Inquiry automation')}</h2>
+        <p class="muted" data-reveal style="--d:.05s">{L(lang, 'Jede Anfrage aus Ihrem Formular kommt sofort bei Ihnen an. Kein Postfach durchsuchen, keine Anfrage geht verloren.', 'Every inquiry from your form reaches you instantly. No digging through your inbox, no inquiry gets lost.')}</p>
         <ol class="flow" data-reveal style="--d:.1s">{lis}</ol>
         {extra}
         <p class="price" data-reveal>{L(lang, '<strong class="num">290 €</strong> Pilotpreis, fertig in <span class="num">5</span> Tagen', '<strong class="num">€290</strong> pilot price, ready in <span class="num">5</span> days')}</p>
@@ -248,7 +281,7 @@ def check_block(lang, full):
             ('ok', L(lang, 'Impressum vorhanden', 'Legal notice present')), ('no', L(lang, 'Datenschutzerklärung vorhanden', 'Privacy policy present')),
             ('ok', L(lang, 'Aussagekräftiger Seitentitel', 'Meaningful page title'))]
     lis = ''.join(f'<li class="{c}"><b aria-hidden="true">{"✓" if c=="ok" else "✕"}</b><span>{e(t)}</span><em>{L(lang, "bestanden", "passed") if c=="ok" else L(lang, "fehlt", "missing")}</em></li>' for c, t in rows)
-    more = '' if full else f'<a class="link" href="{url("check", lang)}">{L(lang, "Was geprüft wird", "What gets checked")}</a>'
+    more = f'<a class="link" href="{url("check", lang)}#sofort">{L(lang, "Sofort selbst prüfen", "Check it yourself now")}</a>'
     return f'''<section class="sec tint" id="check">
     <div class="wrap split">
       <div class="copy">
@@ -266,20 +299,28 @@ def check_block(lang, full):
   </section>'''
 
 def pakete_table(lang):
+    sel = L(lang, 'Auswählen', 'Select'); on = L(lang, 'Gewählt', 'Selected')
+    def pick(key, once):
+        return f'<button class="pick" type="button" data-pick="{key}" data-once="{once}" aria-pressed="false" data-track="Paket wählen: {key}"><span class="pk-off">{sel}</span><span class="pk-on" aria-hidden="true">✓ {on}</span></button>'
     rows = [
-        (L(lang, 'Website-Check', 'Website check'), L(lang, 'Ein Blatt mit fünf Prüfpunkten und was jeder fehlende Punkt kostet.', 'One page with five checkpoints and what each missing point costs you.'), L(lang, '1 Tag', '1 day'), L(lang, 'kostenlos', 'free'), 'check', L(lang, 'Anfordern', 'Request')),
-        (L(lang, 'Website in 7 Tagen', 'Website in 7 days'), L(lang, 'Onepager oder bis 5 Seiten, Kontaktformular, eine Korrekturrunde.', 'One-pager or up to 5 pages, contact form, one round of revisions.'), L(lang, '7 Tage', '7 days'), L(lang, '<s>790 €</s>390 €', '<s>€790</s>€390'), 'website', L(lang, 'Anfragen', 'Request')),
-        (L(lang, 'Anfrage-Automatik', 'Enquiry automation'), L(lang, 'Formular, Tabelle, Nachricht an Sie, Bestätigung, Bewertungsbitte.', 'Form, spreadsheet, message to you, confirmation, review request.'), L(lang, '5 Tage', '5 days'), L(lang, '<s>590 €</s>290 €', '<s>€590</s>€290'), 'automatik', L(lang, 'Anfragen', 'Request')),
-        (L(lang, 'Kundenumfrage', 'Customer survey'), L(lang, 'Umfrage mit Versandlink, Auswertung als Bericht auf einer Seite.', 'Survey with a shareable link, results as a one-page report.'), L(lang, '7 Tage', '7 days'), L(lang, '<s>290 €</s>190 €', '<s>€290</s>€190'), 'umfrage', L(lang, 'Anfragen', 'Request')),
-        (L(lang, 'Betreuung S / M / L', 'Maintenance S / M / L'), L(lang, 'Überwachung, Backups, Updates, Monatsbericht. M mit 30 Minuten, L mit einer Stunde Änderungen.', 'Monitoring, backups, updates, monthly report. M with 30 minutes, L with one hour of changes.'), L(lang, 'laufend', 'ongoing'), L(lang, '29 / 49 / 79 €', '€29 / 49 / 79'), 'betreuung', L(lang, 'Anfragen', 'Request')),
+        ('check', L(lang, 'Website-Check', 'Website check'), L(lang, 'Ein Blatt mit fünf Prüfpunkten und was jeder fehlende Punkt kostet.', 'One page with five checkpoints and what each missing point costs you.'), L(lang, '1 Tag', '1 day'), L(lang, 'kostenlos', 'free'), 0),
+        ('website', L(lang, 'Website in 7 Tagen', 'Website in 7 days'), L(lang, 'Onepager oder bis 5 Seiten, Kontaktformular, eine Korrekturrunde.', 'One-pager or up to 5 pages, contact form, one round of revisions.'), L(lang, '7 Tage', '7 days'), L(lang, '<s>790 €</s>390 €', '<s>€790</s>€390'), 390),
+        ('automatik', L(lang, 'Anfrage-Automatik', 'Inquiry automation'), L(lang, 'Formular, Tabelle, Nachricht an Sie, Bestätigung, Bewertungsbitte.', 'Form, spreadsheet, message to you, confirmation, review request.'), L(lang, '5 Tage', '5 days'), L(lang, '<s>590 €</s>290 €', '<s>€590</s>€290'), 290),
+        ('umfrage', L(lang, 'Kundenumfrage', 'Customer survey'), L(lang, 'Umfrage mit Versandlink, Auswertung als Bericht auf einer Seite.', 'Survey with a shareable link, results as a one-page report.'), L(lang, '7 Tage', '7 days'), L(lang, '<s>290 €</s>190 €', '<s>€290</s>€190'), 190),
     ]
-    trs = ''.join(f'<div class="tr" role="row" data-reveal style="--d:{i*0.05:.2f}s"><span class="name" role="cell">{e(n)}</span><span class="desc" role="cell">{e(d)}</span><span class="time" role="cell">{e(t)}</span><span class="cost" role="cell">{c}</span><span class="act" role="cell">{btn(kontakt_url(lang, a), b, "line", True)}</span></div>' for i, (n, d, t, c, a, b) in enumerate(rows))
-    return f'''<div class="table" role="table" aria-label="{L(lang, 'Pakete', 'Packages')}">
-        <div class="tr th" role="row"><span role="columnheader">{L(lang, 'Paket', 'Package')}</span><span role="columnheader">{L(lang, 'Inhalt', 'Contents')}</span><span role="columnheader">{L(lang, 'Lieferzeit', 'Delivery')}</span><span role="columnheader" style="text-align:right">{L(lang, 'Preis', 'Price')}</span><span></span></div>
-        {trs}
-        <div class="tr tr--custom" role="row" data-reveal><span class="name" role="cell">{L(lang, 'Individuelles Paket', 'Custom package')}</span><span class="desc" role="cell">{L(lang, 'Sie stellen Bausteine, Betreuung und Extras selbst zusammen und sehen den Preis sofort.', 'Combine building blocks, maintenance and extras yourself and see the price instantly.')}</span><span class="time" role="cell">{L(lang, 'nach Absprache', 'by arrangement')}</span><span class="cost" role="cell">{L(lang, 'nach Auswahl', 'by selection')}</span><span class="act" role="cell">{btn(url('individuell', lang), L(lang, 'Zusammenstellen', 'Build'), 'primary', True)}</span></div>
+    trs = ''.join(f'<div class="tr" role="row" data-row="{k}" data-reveal style="--d:{i*0.05:.2f}s"><span class="name" role="cell">{e(n)}</span><span class="desc" role="cell">{e(d)}</span><span class="time" role="cell">{e(t)}</span><span class="cost" role="cell">{c}</span><span class="act" role="cell">{pick(k, o)}</span></div>' for i, (k, n, d, t, c, o) in enumerate(rows))
+    tiers = ''.join(f'<button class="tier" type="button" data-pick="betreuung" data-tier="{t}" aria-pressed="false" data-track="Betreuung wählen: {t}" aria-label="{L(lang, "Betreuung", "Maintenance")} {t}, {L(lang, f"{p} € im Monat", f"€{p} per month")}"><b>{t}</b><small>{L(lang, f"{p} €", f"€{p}")}</small></button>' for t, p in (('S', 29), ('M', 49), ('L', 79)))
+    care = f'<div class="tr" role="row" data-row="betreuung" data-reveal style="--d:.2s"><span class="name" role="cell">{L(lang, "Betreuung S / M / L", "Maintenance S / M / L")}</span><span class="desc" role="cell">{L(lang, "Überwachung, Backups, Updates, Monatsbericht. M mit 30 Minuten, L mit einer Stunde Änderungen.", "Monitoring, backups, updates, monthly report. M with 30 minutes, L with one hour of changes.")}</span><span class="time" role="cell">{L(lang, "pro Monat", "per month")}</span><span class="cost" role="cell">{L(lang, "ab 29 €", "from €29")}</span><span class="act" role="cell"><span class="tiers" role="group" aria-label="{L(lang, "Betreuung wählen", "Choose maintenance")}">{tiers}</span></span></div>'
+    return f'''<div class="table table--pick" role="table" aria-label="{L(lang, 'Pakete', 'Packages')}">
+        <div class="tr th" role="row"><span role="columnheader">{L(lang, 'Paket', 'Package')}</span><span role="columnheader">{L(lang, 'Inhalt', 'Contents')}</span><span role="columnheader">{L(lang, 'Lieferzeit', 'Delivery')}</span><span role="columnheader" style="text-align:right">{L(lang, 'Preis', 'Price')}</span><span role="columnheader" class="th-act">{L(lang, 'Auswahl', 'Select')}</span></div>
+        {trs}{care}
+        <div class="tr tr--custom" role="row" data-reveal><span class="name" role="cell">{L(lang, 'Individuelles Paket', 'Custom package')}</span><span class="desc" role="cell">{L(lang, 'Sie stellen Bausteine, Betreuung und Extras selbst zusammen und sehen den Preis sofort.', 'Combine building blocks, maintenance and extras yourself and see the price instantly.')}</span><span class="time" role="cell">{L(lang, 'nach Absprache', 'by arrangement')}</span><span class="cost" role="cell">{L(lang, 'nach Auswahl', 'by selection')}</span><span class="act" role="cell">{btn(url('individuell', lang), L(lang, 'Zusammenstellen', 'Build'), 'line', True)}</span></div>
       </div>
-      <p class="fine" data-reveal>{L(lang, 'Betreuung pro Monat. Alle Preise ohne Umsatzsteuer, gemäß § 19 UStG wird keine Umsatzsteuer berechnet. Pilotpreise gelten für die ersten drei Kunden, die dafür eine Referenz erlauben.', 'Maintenance per month. No VAT is charged under the German small business rule (§ 19 UStG). Pilot prices apply to the first three clients who allow me to use them as a reference.')}</p>'''
+      <p class="fine" data-reveal>{L(lang, 'Wählen Sie ein oder mehrere Pakete aus und senden Sie die Auswahl als Anfrage. Betreuung pro Monat. Alle Preise ohne Umsatzsteuer, gemäß § 19 UStG wird keine Umsatzsteuer berechnet. Pilotpreise gelten für die ersten drei Kunden, die dafür eine Referenz erlauben.', 'Select one or more packages and send your selection as an inquiry. Maintenance per month. No VAT is charged under the German small business rule (§ 19 UStG). Pilot prices apply to the first three clients who allow me to use them as a reference.')}</p>
+      <div class="pickbar" id="pickbar" aria-hidden="true" aria-live="polite"><div class="pb-in">
+        <div class="pb-txt"><strong id="pb-count"></strong><span id="pb-sum"></span></div>
+        <div class="pb-act"><button class="pb-clear" id="pb-clear" type="button" tabindex="-1">{L(lang, 'Leeren', 'Clear')}</button><a class="btn btn--primary" id="pb-go" href="{url('kontakt', lang)}" tabindex="-1">{L(lang, 'Anfrage senden', 'Send inquiry')}</a></div>
+      </div></div>'''
 
 def faq_items(lang):
     return [
@@ -288,7 +329,7 @@ def faq_items(lang):
         (L(lang, 'Was brauche ich, damit es losgehen kann?', 'What do I need to get started?'), L(lang, 'Einen ausgefüllten Fragebogen mit Logo, Fotos, Leistungen, Öffnungszeiten und den Angaben für das Impressum. Ab dann laufen die 7 Tage. Zum Einstieg reicht der kostenlose Website-Check.', 'A completed questionnaire with your logo, photos, services, opening hours and the details for the legal notice. The 7 days start from then. To begin, the free website check is enough.'), url('check', lang), L(lang, 'Zum Website-Check', 'To the website check')),
         (L(lang, 'Schreiben Sie auch Impressum und Datenschutzerklärung?', 'Do you write the legal notice and privacy policy?'), L(lang, 'Ich lege die Struktur an und baue die Seiten ein. Die Texte kommen von Ihnen oder aus einem Generator. Verbindlich prüfen lassen Sie sie am besten von einer Anwältin oder einem Anwalt.', 'I set up the structure and build the pages. The texts come from you or from a generator. For a binding review, it’s best to consult a lawyer.'), None, None),
         (L(lang, 'Was ist in der Betreuung enthalten?', 'What’s included in maintenance?'), L(lang, 'Überwachung, ob die Seite erreichbar ist, Backups, Updates und ein kurzer Monatsbericht. In M sind 30 Minuten Änderungen im Monat enthalten, in L eine Stunde.', 'Uptime monitoring, backups, updates and a short monthly report. M includes 30 minutes of changes per month, L includes one hour.'), url('individuell', lang), L(lang, 'Paket zusammenstellen', 'Build your package')),
-        (L(lang, 'Wie schnell melden Sie sich nach einer Anfrage?', 'How quickly will you get back to me?'), L(lang, 'Sie bekommen sofort eine Bestätigung per E-Mail und von mir eine persönliche Antwort, in der Regel innerhalb von 24 Stunden an Werktagen. Melde ich mich später, erhalten Sie 10 % Rabatt auf Ihr erstes Paket.', 'You get a confirmation by email right away and a personal reply from me, usually within 24 hours on working days. If I take longer, you get 10% off your first package.'), url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an enquiry')),
+        (L(lang, 'Wie schnell melden Sie sich nach einer Anfrage?', 'How quickly will you get back to me?'), L(lang, 'Sie bekommen sofort eine Bestätigung per E-Mail und von mir eine persönliche Antwort, in der Regel innerhalb von 24 Stunden an Werktagen. Melde ich mich später, erhalten Sie 10 % Rabatt auf Ihr erstes Paket.', 'You get a confirmation by email right away and a personal reply from me, usually within 24 hours on working days. If I take longer, you get 10% off your first package.'), url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an inquiry')),
         (L(lang, 'Arbeiten Sie nur in Karlsruhe?', 'Do you only work in Karlsruhe?'), L(lang, 'Ich sitze in Karlsruhe und arbeite gerne persönlich vor Ort. Ich reise aber auch gern: Termine außerhalb von Karlsruhe sind kein Problem. Wir besprechen sie kurz vorab, und Anfahrt und Zeit plane ich im Preis ein. Alles andere läuft per E-Mail und Telefon, deutschlandweit.', 'I’m based in Karlsruhe and happy to work with you in person. I also like to travel: appointments outside Karlsruhe are no problem. We’ll discuss it briefly up front, and I’ll include travel and time in the price. Everything else runs by email and phone across Germany.'), url('kontakt', lang), L(lang, 'Termin anfragen', 'Request an appointment')),
     ]
 
@@ -300,18 +341,18 @@ def faq_html(lang, items):
     return '<div class="faq">' + ''.join(one(i, it) for i, it in enumerate(items)) + '</div>'
 
 def about_photo(cls='photo-img', sizes='(max-width: 860px) 100vw, 380px'):
-    return (f'<picture><source type="image/webp" srcset="/img/about-640.webp 640w, /img/about-960.webp 960w" sizes="{sizes}">'
-            f'<img class="{cls}" src="/img/about-640.jpg" srcset="/img/about-640.jpg 640w, /img/about-960.jpg 960w" sizes="{sizes}" width="640" height="800" alt="Adrian Semlinger" loading="lazy" decoding="async"></picture>')
+    w6, w9, j6, j9 = A('/img/about-640.webp'), A('/img/about-960.webp'), A('/img/about-640.jpg'), A('/img/about-960.jpg')
+    return (f'<picture><source type="image/webp" srcset="{w6} 640w, {w9} 960w" sizes="{sizes}">'
+            f'<img class="{cls}" src="{j6}" srcset="{j6} 640w, {j9} 960w" sizes="{sizes}" width="640" height="800" alt="Adrian Semlinger" loading="lazy" decoding="async"></picture>')
 
-# ---------- Seiten ----------
 def home(lang):
     teasers = [
         ('websites', 'petrol', 'web', L(lang, 'Website in 7 Tagen', 'Website in 7 days'), L(lang, 'Onepager oder bis zu 5 Seiten, ab 390 €.', 'One-pager or up to 5 pages, from €390.')),
-        ('automatik', 'ink', 'mail', L(lang, 'Anfrage-Automatik', 'Enquiry automation'), L(lang, 'Jede Anfrage sofort auf Ihrem Handy.', 'Every enquiry instantly on your phone.')),
+        ('automatik', 'ink', 'mail', L(lang, 'Anfrage-Automatik', 'Inquiry automation'), L(lang, 'Jede Anfrage sofort auf Ihrem Handy.', 'Every inquiry instantly on your phone.')),
         ('check', 'mint dots', 'clip', L(lang, 'Website-Check', 'Website check'), L(lang, 'Fünf Prüfpunkte, kostenlos.', 'Five checkpoints, free of charge.')),
         ('individuell', 'lime', 'box', L(lang, 'Individuelles Paket', 'Custom package'), L(lang, 'Bausteine wählen, Preis sofort sehen.', 'Pick building blocks, see the price instantly.')),
     ]
-    tz = ''.join(f'<a class="teaser teaser--{c}" href="{url(k, lang)}" data-reveal style="--d:{i*0.06:.2f}s"><span><h3>{e(t)}</h3><p>{e(p)}</p><span class="go">{L(lang, "Ansehen", "View")}</span></span><img src="/img/fig-{f}.webp" width="900" height="900" alt="" loading="lazy" decoding="async"></a>' for i, (k, c, f, t, p) in enumerate(teasers))
+    tz = ''.join(f'<a class="teaser teaser--{c}" href="{url(k, lang)}" data-reveal style="--d:{i*0.06:.2f}s"><span><h3>{e(t)}</h3><p>{e(p)}</p><span class="go">{L(lang, "Ansehen", "View")}</span></span><img src="{A(f"/img/fig-{f}.webp")}" width="900" height="900" alt="" loading="lazy" decoding="async"></a>' for i, (k, c, f, t, p) in enumerate(teasers))
     body = f'''<section class="hero" id="start">
     <div class="wrap">
       <div>
@@ -352,7 +393,7 @@ def home(lang):
   </div></section>
   {closer(lang)}'''
     desc = L(lang, 'Lou Digital aus Karlsruhe: Website in 7 Tagen ab 390 €, Anfrage-Automatik, Kundenumfragen und Betreuung ab 29 € im Monat. Kostenloser Website-Check.',
-             'Lou Digital from Karlsruhe, Germany: a website in 7 days from €390, enquiry automation, customer surveys and maintenance from €29 a month. Free website check.')
+             'Lou Digital from Karlsruhe, Germany: a website in 7 days from €390, inquiry automation, customer surveys and maintenance from €29 a month. Free website check.')
     ld = {"@context": "https://schema.org", "@type": "ProfessionalService", "name": "Lou Digital", "url": SITE + url('home', lang), "email": EMAIL,
           "founder": {"@type": "Person", "name": "Adrian Semlinger"},
           "address": {"@type": "PostalAddress", "addressLocality": "Karlsruhe", "addressRegion": "Baden-Württemberg", "addressCountry": "DE"}, "areaServed": "DE"}
@@ -361,12 +402,12 @@ def home(lang):
     return page(lang, 'home', L(lang, 'Lou Digital – Websites und Automatisierung aus Karlsruhe', 'Lou Digital – Websites and automation from Karlsruhe'), desc, body, extra_head=head)
 
 def sub_websites(lang):
-    body = page_hero(L(lang, 'Website in 7&nbsp;Tagen', 'Website in 7&nbsp;days'), L(lang, 'Eine klare Website, die auf jedem Gerät gut aussieht und Anfragen bringt. Fester Preis, feste Lieferzeit.', 'A clear website that looks good on every device and brings in enquiries. Fixed price, fixed delivery time.')) + websites_block(lang, True) + closer(lang)
+    body = page_hero(L(lang, 'Website in 7&nbsp;Tagen', 'Website in 7&nbsp;days'), L(lang, 'Eine klare Website, die auf jedem Gerät gut aussieht und Anfragen bringt. Fester Preis, feste Lieferzeit.', 'A clear website that looks good on every device and brings in inquiries. Fixed price, fixed delivery time.')) + websites_block(lang, True) + closer(lang)
     return page(lang, 'websites', L(lang, 'Website in 7 Tagen – Lou Digital', 'Website in 7 days – Lou Digital'), L(lang, 'Onepager oder bis zu fünf Seiten in 7 Tagen, mit Kontaktformular und mobiler Ansicht. Pilotpreis 390 €.', 'A one-pager or up to five pages in 7 days, with contact form and mobile layout. Pilot price €390.'), body)
 
 def sub_automatik(lang):
-    body = page_hero(L(lang, 'Anfrage-Automatik', 'Enquiry automation'), L(lang, 'Ihr Formular, Ihre Tabelle und Ihr Handy arbeiten zusammen. Keine Anfrage geht mehr verloren.', 'Your form, your spreadsheet and your phone work together. No enquiry gets lost again.')) + automatik_block(lang, True) + closer(lang)
-    return page(lang, 'automatik', L(lang, 'Anfrage-Automatik – Lou Digital', 'Enquiry automation – Lou Digital'), L(lang, 'Anfragen aus Ihrem Formular landen in einer Tabelle und als Nachricht auf Ihrem Handy. Pilotpreis 290 €, fertig in 5 Tagen.', 'Enquiries from your form land in a spreadsheet and as a message on your phone. Pilot price €290, ready in 5 days.'), body)
+    body = page_hero(L(lang, 'Anfrage-Automatik', 'Inquiry automation'), L(lang, 'Ihr Formular, Ihre Tabelle und Ihr Handy arbeiten zusammen. Keine Anfrage geht mehr verloren.', 'Your form, your spreadsheet and your phone work together. No inquiry gets lost again.')) + automatik_block(lang, True) + closer(lang)
+    return page(lang, 'automatik', L(lang, 'Anfrage-Automatik – Lou Digital', 'Inquiry automation – Lou Digital'), L(lang, 'Anfragen aus Ihrem Formular landen in einer Tabelle und als Nachricht auf Ihrem Handy. Pilotpreis 290 €, fertig in 5 Tagen.', 'Inquiries from your form land in a spreadsheet and as a message on your phone. Pilot price €290, ready in 5 days.'), body)
 
 def sub_check(lang):
     pts = [(L(lang, 'Verschlüsselung', 'Encryption'), L(lang, 'Läuft Ihre Seite über HTTPS? Ohne Schloss warnen Browser Ihre Besucher.', 'Does your site run on HTTPS? Without the padlock, browsers warn your visitors.')),
@@ -375,7 +416,19 @@ def sub_check(lang):
            (L(lang, 'Datenschutz', 'Privacy'), L(lang, 'Gibt es eine Datenschutzerklärung? Fehlt sie, drohen Abmahnungen.', 'Is there a privacy policy? Without one, you risk formal warnings.')),
            (L(lang, 'Seitentitel', 'Page title'), L(lang, 'Sagt der Titel, was Sie anbieten und wo? Davon hängt ab, ob Google Sie findet.', 'Does the title say what you offer and where? It decides whether Google finds you.'))]
     rows = ''.join(f'<div data-reveal style="--d:{i*0.05:.2f}s"><dt>{e(a)}</dt><dd>{e(b)}</dd></div>' for i, (a, b) in enumerate(pts))
-    body = page_hero(L(lang, 'Website-Check', 'Website check'), L(lang, 'Fünf Prüfpunkte, ein Blatt Ergebnis, kostenlos. Danach wissen Sie, was Ihre Website gerade kostet.', 'Five checkpoints, one page of results, free. Afterwards you know what your website is costing you.')) + check_block(lang, True) + f'''
+    quick = f'''<section class="sec sec--tight" id="sofort"><div class="wrap">
+    <div class="quick" data-reveal="scale">
+      <div class="quick-copy"><h2 class="h2">{L(lang, 'Sofort-Check', 'Instant check')}</h2><p>{L(lang, 'Geben Sie Ihre Adresse ein. In wenigen Sekunden sehen Sie, welche der fünf Punkte Ihre Website erfüllt. Kostenlos, ohne Anmeldung.', 'Enter your address. Within seconds you see which of the five points your website meets. Free, no sign-up.')}</p></div>
+      <form class="quick-form" id="qcheck" novalidate>
+        <label class="sr" for="qc-url">{L(lang, 'Adresse Ihrer Website', 'Your website address')}</label>
+        <input id="qc-url" name="url" type="text" inputmode="url" autocomplete="url" maxlength="200" placeholder="{L(lang, 'ihre-firma.de', 'your-company.com')}">
+        <button class="btn btn--primary" id="qc-go" type="submit">{L(lang, 'Jetzt prüfen', 'Check now')}</button>
+        <span class="err" id="qc-err" hidden role="alert"></span>
+      </form>
+      <div id="qc-out" aria-live="polite"></div>
+    </div>
+  </div></section>'''
+    body = page_hero(L(lang, 'Website-Check', 'Website check'), L(lang, 'Fünf Prüfpunkte, sofort online oder als ausführliches Blatt, kostenlos. Danach wissen Sie, was Ihre Website gerade kostet.', 'Five checkpoints, instantly online or as a detailed sheet, free. Afterwards you know what your website is costing you.')) + quick + check_block(lang, True) + f'''
   <section class="sec"><div class="wrap split">
     <div class="copy"><h2 class="h2" data-reveal>{L(lang, 'Was ich prüfe', 'What I check')}</h2><dl class="spec">{rows}</dl></div>
     <div></div>
@@ -385,13 +438,13 @@ def sub_check(lang):
 def sub_pakete(lang):
     body = page_hero(L(lang, 'Pakete und Preise', 'Packages and prices'), L(lang, 'Feste Pakete mit festen Preisen. Oder Sie stellen sich Ihr eigenes Paket zusammen.', 'Fixed packages at fixed prices. Or put together your own package.')) + f'''
   <section class="sec sec--tight"><div class="wrap">{pakete_table(lang)}</div></section>''' + closer(lang)
-    return page(lang, 'pakete', L(lang, 'Pakete und Preise – Lou Digital', 'Packages and prices – Lou Digital'), L(lang, 'Website-Check kostenlos, Website ab 390 €, Anfrage-Automatik 290 €, Kundenumfrage 190 €, Betreuung ab 29 € im Monat.', 'Website check free, website from €390, enquiry automation €290, customer survey €190, maintenance from €29 a month.'), body)
+    return page(lang, 'pakete', L(lang, 'Pakete und Preise – Lou Digital', 'Packages and prices – Lou Digital'), L(lang, 'Website-Check kostenlos, Website ab 390 €, Anfrage-Automatik 290 €, Kundenumfrage 190 €, Betreuung ab 29 € im Monat.', 'Website check free, website from €390, inquiry automation €290, customer survey €190, maintenance from €29 a month.'), body)
 
 def sub_individuell(lang):
     def opt(typ, name, val, idv, title, small, price, checked=False):
         return f'<label class="opt"><input type="{typ}" name="{name}" value="{val}" id="{idv}"{" checked" if checked else ""}><span><b>{e(title)}</b>{f"<small>{e(small)}</small>" if small else ""}</span><span class="p">{e(price)}</span></label>'
     b = ''.join([opt('checkbox', 'b', 'web', 'b-web', L(lang, 'Website in 7 Tagen', 'Website in 7 days'), L(lang, 'Onepager oder bis 5 Seiten', 'One-pager or up to 5 pages'), L(lang, '390 €', '€390')),
-                 opt('checkbox', 'b', 'auto', 'b-auto', L(lang, 'Anfrage-Automatik', 'Enquiry automation'), L(lang, 'Formular, Tabelle, Nachricht an Sie', 'Form, spreadsheet, message to you'), L(lang, '290 €', '€290')),
+                 opt('checkbox', 'b', 'auto', 'b-auto', L(lang, 'Anfrage-Automatik', 'Inquiry automation'), L(lang, 'Formular, Tabelle, Nachricht an Sie', 'Form, spreadsheet, message to you'), L(lang, '290 €', '€290')),
                  opt('checkbox', 'b', 'survey', 'b-survey', L(lang, 'Kundenumfrage', 'Customer survey'), L(lang, 'Umfrage mit Auswertung', 'Survey with analysis'), L(lang, '190 €', '€190')),
                  opt('checkbox', 'b', 'check', 'b-check', L(lang, 'Website-Check', 'Website check'), L(lang, '5 Prüfpunkte vorab', '5 checkpoints up front'), L(lang, '0 €', '€0'), True)])
     c = ''.join([opt('radio', 'care', 'none', 'c-none', L(lang, 'Keine Betreuung', 'No maintenance'), L(lang, 'Sie übernehmen Updates selbst', 'You handle updates yourself'), L(lang, '0 €', '€0'), True),
@@ -439,7 +492,7 @@ def sub_ueber(lang):
         <p data-reveal style="--d:.05s">{L(lang, 'Ich komme aus dem Kaufmännischen: Einkauf, Angebote, Rechnungswesen. Deshalb weiß ich, wie viel Zeit in Abläufen steckt, die sich automatisieren lassen, und wie wichtig ein klarer Preis vor dem Start ist.', 'My background is in business: purchasing, quotes and accounting. That’s why I know how much time goes into processes that could be automated, and how important a clear price is before you start.')}</p>
         <p data-reveal style="--d:.1s">{L(lang, 'Ich arbeite mit festen Paketen und Werkzeugen, die nach der Übergabe weiterlaufen. Domain und Zugänge laufen auf Ihren Namen. Was ich baue, erkläre ich so, dass Sie es ohne mich bedienen können.', 'I work with fixed packages and tools that keep running after handover. Domain and accounts are registered in your name. I explain what I build so you can run it without me.')}</p>
         <dl class="spec" data-reveal style="--d:.15s">{spec_rows([(L(lang, 'Sitz', 'Based in'), 'Karlsruhe'), (L(lang, 'Arbeitsweise', 'Way of working'), L(lang, 'Feste Pakete, ein Ansprechpartner', 'Fixed packages, one point of contact')), (L(lang, 'Kontakt', 'Contact'), f'<a class="mailto" href="mailto:{EMAIL}">{EMAIL}</a>')])}</dl>
-        <div class="row-actions" data-reveal>{btn(url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an enquiry'))}</div>
+        <div class="row-actions" data-reveal>{btn(url('kontakt', lang), L(lang, 'Anfrage senden', 'Send an inquiry'))}</div>
       </div>
   </div></section>''' + closer(lang)
     return page(lang, 'ueber', L(lang, 'Über mich – Lou Digital', 'About me – Lou Digital'), L(lang, 'Adrian Semlinger, Lou Digital in Karlsruhe: Websites und Automatisierung mit festen Paketen und klaren Preisen.', 'Adrian Semlinger, Lou Digital in Karlsruhe: websites and automation with fixed packages and clear prices.'), body)
@@ -472,29 +525,47 @@ def sub_fragen(lang):
     return page(lang, 'fragen', L(lang, 'Häufige Fragen – Lou Digital', 'FAQ – Lou Digital'), L(lang, 'Antworten zu Preisen, Eigentum, Ablauf, Rechtstexten, Betreuung und Antwortzeit.', 'Answers on prices, ownership, process, legal texts, maintenance and response time.'), body, extra_head=head)
 
 def sub_kontakt(lang):
-    opts = [('check', L(lang, 'Website-Check', 'Website check')), ('website', L(lang, 'Website in 7 Tagen', 'Website in 7 days')), ('automatik', L(lang, 'Anfrage-Automatik', 'Enquiry automation')),
-            ('umfrage', L(lang, 'Kundenumfrage', 'Customer survey')), ('betreuung', L(lang, 'Betreuung', 'Maintenance')), ('individuell', L(lang, 'Individuelles Paket', 'Custom package')), ('sonstiges', L(lang, 'Sonstiges', 'Other'))]
-    o = ''.join(f'<option value="{v}">{e(t)}</option>' for v, t in opts)
-    phone = f'<p><strong>{L(lang, "Telefon", "Phone")}</strong><br><a href="tel:{PHONE.replace(" ", "")}">{e(PHONE)}</a></p>' if PHONE else ''
-    body = page_hero(L(lang, 'Anfrage senden', 'Send an enquiry'), L(lang, 'Schreiben Sie mir kurz, worum es geht. Sie bekommen sofort eine Bestätigung und von mir eine persönliche Antwort.', 'Tell me briefly what it’s about. You get a confirmation right away and a personal reply from me.')) + f'''
+    chips = [('check', L(lang, 'Website-Check', 'Website check'), L(lang, 'kostenlos', 'free')), ('website', L(lang, 'Website in 7 Tagen', 'Website in 7 days'), L(lang, '390 €', '€390')),
+             ('automatik', L(lang, 'Anfrage-Automatik', 'Inquiry automation'), L(lang, '290 €', '€290')), ('umfrage', L(lang, 'Kundenumfrage', 'Customer survey'), L(lang, '190 €', '€190')),
+             ('betreuung', L(lang, 'Betreuung', 'Maintenance'), L(lang, 'ab 29 €/M', 'from €29/mo')), ('individuell', L(lang, 'Individuelles Paket', 'Custom package'), ''),
+             ('termin', L(lang, 'Gespräch vereinbaren', 'Book a call'), L(lang, 'Telefon, Video, vor Ort', 'phone, video, in person')), ('sonstiges', L(lang, 'Sonstiges', 'Other'), '')]
+    ch = ''.join(f'<label class="chip" for="p-{v}" data-track="Auswahl: {v}"><input type="checkbox" id="p-{v}" name="pakete[]" value="{v}"><span><b>{e(t)}</b>{f"<small>{e(s)}</small>" if s else ""}</span></label>' for v, t, s in chips)
+    tiers = ''.join(f'<label class="seg-o"><input type="radio" name="betreuung_stufe" value="{t}"{" checked" if t == "S" else ""}><span><b>{t}</b> {L(lang, f"{p} €/Monat", f"€{p}/month")}</span></label>' for t, p in (('S', 29), ('M', 49), ('L', 79)))
+    slots = [('vormittag', L(lang, 'Vormittag (9–12 Uhr)', 'Morning (9am–12pm)')), ('mittag', L(lang, 'Mittag (12–15 Uhr)', 'Midday (12–3pm)')), ('nachmittag', L(lang, 'Nachmittag (15–18 Uhr)', 'Afternoon (3–6pm)')), ('abend', L(lang, 'Abend (18–20 Uhr)', 'Evening (6–8pm)'))]
+    arts = [('telefon', L(lang, 'Telefon', 'Phone')), ('video', L(lang, 'Videocall', 'Video call')), ('vorort', L(lang, 'Vor Ort', 'In person'))]
+    so = ''.join(f'<option value="{v}">{e(t)}</option>' for v, t in slots); ao = ''.join(f'<option value="{v}">{e(t)}</option>' for v, t in arts)
+    tel = PHONE.replace(' ', '')
+    body = page_hero(L(lang, 'Anfrage senden', 'Send an inquiry'), L(lang, 'Wählen Sie, was Sie interessiert, oder vereinbaren Sie direkt ein Gespräch. Sie bekommen sofort eine Bestätigung und von mir eine persönliche Antwort.', 'Choose what interests you, or book a call straight away. You get a confirmation right away and a personal reply from me.')) + f'''
   <section class="sec sec--tight"><div class="wrap close">
     <div>
+      <div class="contact-quick" data-reveal>
+        <a class="cq" href="tel:{tel}" data-track="Anruf"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z" fill="currentColor"/></svg></span><span><b>{L(lang, 'Anrufen', 'Call')}</b><small>{e(PHONE)}</small></span></a>
+        <a class="cq" href="mailto:{EMAIL}" data-track="E-Mail"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zm2 .9v.3l7 4.6 7-4.6v-.3z" fill="currentColor"/></svg></span><span><b>E-Mail</b><small>{EMAIL}</small></span></a>
+        <a class="cq" href="?pakete=termin#contact" data-termin data-track="Gespräch vereinbaren"><span class="cq-i" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm-2 8h14v9H5z" fill="currentColor"/></svg></span><span><b>{L(lang, 'Gespräch vereinbaren', 'Book a call')}</b><small>{L(lang, 'Telefon, Video oder vor Ort', 'Phone, video or in person')}</small></span></a>
+      </div>
       <div class="contact-facts" data-reveal>
-        <p><strong>E-Mail</strong><br><a href="mailto:{EMAIL}">{EMAIL}</a></p>
-        {phone}
-        <p><strong>{L(lang, 'Standort', 'Location')}</strong><br><a href="{MAPS}" target="_blank" rel="noopener">{ADDRESS[0]}<br>{ADDRESS[1]}</a><br><span class="muted">{L(lang, 'Auf Google Maps öffnen', 'Open in Google Maps')}</span></p>
         <p><strong>{L(lang, 'Antwortzeit', 'Response time')}</strong><br>{L(lang, 'In der Regel innerhalb von 24 Stunden an Werktagen. Melde ich mich später, erhalten Sie 10 % Rabatt auf Ihr erstes Paket.', 'Usually within 24 hours on working days. If I take longer, you get 10% off your first package.')}</p>
-        <p><strong>{L(lang, 'Vor Ort und unterwegs', 'On site and on the road')}</strong><br>{L(lang, 'Ich arbeite gerne persönlich in Karlsruhe und reise auch zu Ihnen. Anfahrt und Zeit besprechen wir vorab und planen sie im Preis ein.', 'I like to work in person in Karlsruhe and I’m happy to travel to you. We’ll agree travel and time up front and include them in the price.')}</p>
+        <p><strong>{L(lang, 'Vor Ort und unterwegs', 'On site and on the road')}</strong><br>{L(lang, 'Ich sitze in Karlsruhe, arbeite gerne persönlich bei Ihnen und reise auch weiter. Anfahrt und Zeit besprechen wir vorab und planen sie im Preis ein.', 'I’m based in Karlsruhe, like to work with you in person and also travel further. We’ll agree travel and time up front and include them in the price.')}</p>
       </div>
       <div class="trio" aria-hidden="true" data-reveal="scale">
         <div class="blk blk--petrol">{fig('web', '84%')}</div>
         <div class="blk blk--ink">{fig('mail', '86%')}</div>
-        <div class="blk blk--mint dots">{fig('clip', '84%')}</div>
+        <div class="blk blk--lime">{fig('box', '90%')}</div>
       </div>
     </div>
     <form class="form" id="contact" action="/api/anfrage.php" method="post" novalidate data-reveal="scale">
-      <h3>{L(lang, 'Ihre Anfrage', 'Your enquiry')}</h3>
-      <div class="field"><label for="f-topic">{L(lang, 'Worum geht es?', 'What is it about?')}</label><select id="f-topic" name="anliegen">{o}</select></div>
+      <h3>{L(lang, 'Ihre Anfrage', 'Your inquiry')}</h3>
+      <fieldset class="chips"><legend>{L(lang, 'Was interessiert Sie?', 'What are you interested in?')} <em>{L(lang, '(mehrere möglich)', '(choose any)')}</em></legend><div class="chip-grid">{ch}</div></fieldset>
+      <div class="subf" id="tier-field" hidden><span class="sub-l">{L(lang, 'Welche Betreuung?', 'Which maintenance plan?')}</span><div class="seg">{tiers}</div></div>
+      <div class="subf" id="termin-field" hidden>
+        <span class="sub-l">{L(lang, 'Ihr Wunschtermin', 'Your preferred slot')}</span>
+        <div class="row3">
+          <div class="field"><label for="f-date">{L(lang, 'Tag', 'Day')}</label><input id="f-date" name="termin_datum" type="date"></div>
+          <div class="field"><label for="f-art">{L(lang, 'Art', 'Type')}</label><select id="f-art" name="termin_art">{ao}</select></div>
+          <div class="field f-slot"><label for="f-slot">{L(lang, 'Zeitfenster', 'Time')}</label><select id="f-slot" name="termin_zeit">{so}</select></div>
+        </div>
+        <span class="err" id="e-date" hidden>{L(lang, 'Bitte wählen Sie einen Tag von morgen bis in 60 Tagen, Montag bis Samstag.', 'Please choose a day from tomorrow up to 60 days ahead, Monday to Saturday.')}</span>
+      </div>
       <div class="field" id="pkg-field" hidden><label for="f-pkg">{L(lang, 'Ihre Zusammenstellung', 'Your selection')}</label><textarea id="f-pkg" name="zusammenstellung" readonly></textarea><a class="link" style="justify-self:start;font-size:14px" href="{url('individuell', lang)}">{L(lang, 'Zusammenstellung ändern', 'Change selection')}</a></div>
       <div class="row2">
         <div class="field"><label for="f-name">{L(lang, 'Ihr Name', 'Your name')}</label><input id="f-name" name="name" type="text" autocomplete="name" maxlength="100" required><span class="err" id="e-name" hidden>{L(lang, 'Bitte geben Sie Ihren Namen ein.', 'Please enter your name.')}</span></div>
@@ -507,13 +578,13 @@ def sub_kontakt(lang):
       <div class="field"><label for="f-url">{L(lang, 'Ihre Website', 'Your website')} <em id="url-hint">(optional)</em></label><input id="f-url" name="website_url" type="text" inputmode="url" maxlength="200" placeholder="{L(lang, 'ihre-firma.de', 'your-company.com')}" autocomplete="url"><span class="err" id="e-url" hidden>{L(lang, 'Bitte geben Sie eine Adresse wie ihre-firma.de ein.', 'Please enter an address like your-company.com.')}</span></div>
       <div class="field"><label for="f-msg">{L(lang, 'Nachricht', 'Message')} <em>(optional)</em></label><textarea id="f-msg" name="nachricht" maxlength="1500" placeholder="{L(lang, 'Was ist Ihnen wichtig?', 'What matters to you?')}"></textarea></div>
       <div class="hp" aria-hidden="true"><label for="f-hp">{L(lang, 'Bitte leer lassen', 'Please leave empty')}</label><input id="f-hp" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-      <label class="consent" for="f-ok"><input id="f-ok" name="einwilligung" value="1" type="checkbox"><span>{L(lang, f'Ich bin einverstanden, dass Lou Digital meine Angaben zur Bearbeitung der Anfrage speichert. Details in der <a href="{url("datenschutz", lang)}">Datenschutzerklärung</a>.', f'I agree that Lou Digital stores my details to process this enquiry. Details in the <a href="{url("datenschutz", lang)}">privacy policy</a>.')}</span></label>
+      <label class="consent" for="f-ok"><input id="f-ok" name="einwilligung" value="1" type="checkbox"><span>{L(lang, f'Ich bin einverstanden, dass Lou Digital meine Angaben zur Bearbeitung der Anfrage speichert. Details in der <a href="{url("datenschutz", lang)}">Datenschutzerklärung</a>.', f'I agree that Lou Digital stores my details to process this inquiry. Details in the <a href="{url("datenschutz", lang)}">privacy policy</a>.')}</span></label>
       <span class="err" id="e-ok" hidden>{L(lang, 'Bitte bestätigen Sie die Einwilligung.', 'Please confirm your consent.')}</span>
-      <button class="btn btn--primary" type="submit" id="f-send">{L(lang, 'Anfrage senden', 'Send enquiry')}</button>
+      <button class="btn btn--primary" type="submit" id="f-send">{L(lang, 'Anfrage senden', 'Send inquiry')}</button>
       <p class="msg" id="f-res" hidden role="status"></p>
     </form>
   </div></section>'''
-    return page(lang, 'kontakt', L(lang, 'Anfrage senden – Lou Digital', 'Send an enquiry – Lou Digital'), L(lang, 'Kontakt zu Lou Digital in Karlsruhe: Anfrage für Website, Automatik, Umfrage, Betreuung oder kostenlosen Website-Check.', 'Contact Lou Digital in Karlsruhe: enquiries for websites, automation, surveys, maintenance or a free website check.'), body)
+    return page(lang, 'kontakt', L(lang, 'Anfrage senden – Lou Digital', 'Send an inquiry – Lou Digital'), L(lang, 'Kontakt zu Lou Digital in Karlsruhe: Pakete auswählen, Gespräch vereinbaren oder kostenlosen Website-Check anfordern.', 'Contact Lou Digital in Karlsruhe: select packages, book a call or request a free website check.'), body)
 
 def sub_impressum(lang):
     tel = f'<br>{L(lang, "Telefon", "Phone")}: <a href="tel:{PHONE.replace(" ", "")}">{e(PHONE)}</a>' if PHONE else ''
@@ -551,19 +622,23 @@ def sub_datenschutz(lang):
 <h2>1. Verantwortlicher</h2>
 <p>Adrian Semlinger, Lou Digital, {ADDRESS[0]}, {ADDRESS[1]}, E-Mail: <a href="mailto:{EMAIL}">{EMAIL}</a></p>
 <h2>2. Grundsätze</h2>
-<p>Diese Website setzt keine Cookies, nutzt kein Tracking und keine Analyse-Werkzeuge und lädt keine Inhalte von fremden Servern. Schriften und Skripte liegen auf dem eigenen Webspace. Für den Seitenwechsel wird nur eine kurze Auswahl (Paket-Zusammenstellung) im Sitzungsspeicher Ihres Browsers abgelegt, die beim Schließen des Tabs gelöscht wird.</p>
+<p>Diese Website setzt keine Cookies und lädt keine Inhalte von fremden Servern. Schriften und Skripte liegen auf dem eigenen Webspace. Für den Seitenwechsel wird nur eine kurze Auswahl (Paket-Zusammenstellung) im Sitzungsspeicher Ihres Browsers abgelegt, die beim Schließen des Tabs gelöscht wird. Zur Verbesserung der Website nutze ich eine eigene Reichweitenmessung ohne Cookies (Abschnitt 6).</p>
 <h2>3. Hosting und Server-Logdateien</h2>
 <p>Die Website liegt bei der netcup GmbH, Daimlerstraße 25, 76185 Karlsruhe, auf Servern in Deutschland. Mit netcup besteht ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO.</p>
 <p>Beim Aufruf der Website speichert der Server automatisch technische Daten: IP-Adresse, Datum und Uhrzeit, aufgerufene Seite, Browser und Betriebssystem sowie die zuvor besuchte Seite. Das dient dem sicheren und stabilen Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Die Logdateien werden nach spätestens 14 Tagen gelöscht, sofern sie nicht zur Aufklärung eines Sicherheitsvorfalls länger benötigt werden.</p>
 <h2>4. Anfrageformular und E-Mail</h2>
-<p>Wenn Sie das Anfrageformular nutzen, werden Ihre Angaben (Anliegen, Name, gegebenenfalls Firma, E-Mail-Adresse, gegebenenfalls Telefonnummer und Website, Nachricht, gegebenenfalls Ihre Paket-Zusammenstellung) verschlüsselt an den Webserver übertragen und per E-Mail an mein Postfach bei netcup weitergeleitet. Sie erhalten eine automatische Eingangsbestätigung an die angegebene Adresse. Zum Schutz vor Missbrauch wird Ihre IP-Adresse in gekürzter, nicht rückrechenbarer Form höchstens eine Stunde gespeichert, um zu viele Anfragen in kurzer Zeit zu begrenzen.</p>
+<p>Wenn Sie das Anfrageformular nutzen, werden Ihre Angaben (Auswahl, Name, gegebenenfalls Firma, E-Mail-Adresse, gegebenenfalls Telefonnummer und Website, Nachricht, gegebenenfalls Ihre Paket-Zusammenstellung) verschlüsselt an den Webserver übertragen und per E-Mail an mein Postfach bei netcup weitergeleitet. Sie erhalten eine automatische Eingangsbestätigung an die angegebene Adresse. Zum Schutz vor Missbrauch wird Ihre IP-Adresse in gekürzter, nicht rückrechenbarer Form höchstens eine Stunde gespeichert, um zu viele Anfragen in kurzer Zeit zu begrenzen.</p>
 <p>Ich verarbeite die Angaben, um Ihre Anfrage zu beantworten und gegebenenfalls ein Angebot zu erstellen (Art. 6 Abs. 1 lit. b DSGVO). Pflichtangaben sind nur Name und E-Mail-Adresse, beim Website-Check zusätzlich die Adresse der Website. Ich lösche Anfragen, wenn sie erledigt sind und keine gesetzlichen Aufbewahrungspflichten bestehen; Unterlagen zu Aufträgen bewahre ich nach den steuer- und handelsrechtlichen Fristen auf. Dasselbe gilt, wenn Sie mir direkt eine E-Mail schreiben.</p>
+<p>Wenn Sie einen Gesprächstermin anfragen, verarbeite ich zusätzlich Ihren Wunschtag, das Zeitfenster und die Art des Gesprächs, um den Termin mit Ihnen abzustimmen (Art. 6 Abs. 1 lit. b DSGVO). Über die Feedback-Lasche können Sie mir Vorschläge schicken; eine E-Mail-Adresse ist dort freiwillig und dient nur Rückfragen.</p>
 <h2>5. Website-Check</h2>
-<p>Für den kostenlosen Website-Check rufe ich die von Ihnen genannte öffentliche Website auf und prüfe sie an fünf Punkten. Das Ergebnis speichere ich zusammen mit Ihrer Anfrage, um es Ihnen zu schicken (Art. 6 Abs. 1 lit. b DSGVO).</p>
-<h2>6. Ihre Rechte</h2>
+<p>Für den Website-Check ruft mein Server die von Ihnen genannte öffentliche Website einmal auf und prüft sie an fünf Punkten. Beim Sofort-Check wird das Ergebnis nur angezeigt und nicht gespeichert. Fordern Sie den Check per Formular an, speichere ich das Ergebnis zusammen mit Ihrer Anfrage, um es Ihnen zu schicken (Art. 6 Abs. 1 lit. b DSGVO).</p>
+<h2>6. Reichweitenmessung ohne Cookies</h2>
+<p>Um zu verstehen, welche Inhalte gelesen und genutzt werden, und die Website zu verbessern, erfasst ein eigenes Skript auf diesem Server beim Besuch: aufgerufene Seite, angeklickte Schaltflächen und Links mit ihrer ungefähren Position, wie weit eine Seite gelesen wurde, abgeschickte Formulare (ohne Inhalte), die Domain der Seite, von der Sie kamen, Sprache, Gerätetyp, Betriebssystem und Browser. Dabei werden keine Cookies gesetzt und nichts in Ihrem Browser gespeichert. Ihre IP-Adresse wird nicht gespeichert, sondern nur kurz zusammen mit der Browserkennung und einem täglich wechselnden Zufallswert zu einem verkürzten Hash umgerechnet, damit Besucher pro Tag gezählt werden können; ein Rückschluss auf Ihre Person ist damit nicht möglich. Die Daten bleiben auf dem Webspace bei netcup und werden nicht weitergegeben. Rohdaten lösche ich nach 14 Monaten.</p>
+<p>Rechtsgrundlage ist mein berechtigtes Interesse an einer nutzerfreundlichen und wirksamen Website (Art. 6 Abs. 1 lit. f DSGVO). Wenn Ihr Browser „Do Not Track“ oder „Global Privacy Control“ sendet, findet keine Messung statt. Sie können jederzeit widersprechen, eine E-Mail genügt.</p>
+<h2>7. Ihre Rechte</h2>
 <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch gegen Verarbeitungen auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO. Eine erteilte Einwilligung können Sie jederzeit für die Zukunft widerrufen. Eine E-Mail an <a href="mailto:{EMAIL}">{EMAIL}</a> genügt.</p>
 <p>Sie können sich bei einer Datenschutz-Aufsichtsbehörde beschweren, zum Beispiel beim Landesbeauftragten für den Datenschutz und die Informationsfreiheit Baden-Württemberg, Lautenschlagerstraße 20, 70173 Stuttgart.</p>
-<h2>7. Stand</h2>
+<h2>8. Stand</h2>
 <p>Oktober 2026</p>'''
     else:
         inner = f'''<h1>Privacy policy</h1>
@@ -571,19 +646,23 @@ def sub_datenschutz(lang):
 <h2>1. Controller</h2>
 <p>Adrian Semlinger, Lou Digital, {ADDRESS[0]}, {ADDRESS[1]}, Germany, email: <a href="mailto:{EMAIL}">{EMAIL}</a></p>
 <h2>2. Principles</h2>
-<p>This website sets no cookies, uses no tracking or analytics tools and loads no content from third-party servers. Fonts and scripts are hosted on this server. Only a short selection (your package selection) is kept in your browser’s session storage when you move between pages; it is deleted when you close the tab.</p>
+<p>This website sets no cookies and loads no content from third-party servers. Fonts and scripts are hosted on this server. Only a short selection (your package selection) is kept in your browser’s session storage when you move between pages; it is deleted when you close the tab. To improve the website, I use my own audience measurement without cookies (section 6).</p>
 <h2>3. Hosting and server log files</h2>
 <p>The website is hosted by netcup GmbH, Daimlerstraße 25, 76185 Karlsruhe, Germany, on servers in Germany. A data processing agreement under Art. 28 GDPR is in place with netcup.</p>
 <p>When you visit the website, the server automatically stores technical data: IP address, date and time, page requested, browser and operating system, and the referring page. This serves the secure and stable operation of the website (Art. 6 (1) (f) GDPR). Log files are deleted after 14 days at the latest unless they are needed longer to investigate a security incident.</p>
-<h2>4. Enquiry form and email</h2>
-<p>When you use the enquiry form, your details (topic, name, company if given, email address, phone number and website if given, message, your package selection if any) are sent encrypted to the web server and forwarded by email to my mailbox at netcup. You receive an automatic confirmation at the address you entered. To prevent abuse, a shortened, irreversible form of your IP address is kept for at most one hour to limit too many enquiries in a short time.</p>
-<p>I process the details to answer your enquiry and, if applicable, prepare a quote (Art. 6 (1) (b) GDPR). Only name and email address are required, plus the website address for a website check. I delete enquiries once they are settled and no statutory retention obligations apply; records of orders are kept for the periods required by tax and commercial law. The same applies if you email me directly.</p>
+<h2>4. Inquiry form and email</h2>
+<p>When you use the inquiry form, your details (topic, name, company if given, email address, phone number and website if given, message, your package selection if any) are sent encrypted to the web server and forwarded by email to my mailbox at netcup. You receive an automatic confirmation at the address you entered. To prevent abuse, a shortened, irreversible form of your IP address is kept for at most one hour to limit too many inquiries in a short time.</p>
+<p>I process the details to answer your inquiry and, if applicable, prepare a quote (Art. 6 (1) (b) GDPR). Only name and email address are required, plus the website address for a website check. I delete inquiries once they are settled and no statutory retention obligations apply; records of orders are kept for the periods required by tax and commercial law. The same applies if you email me directly.</p>
+<p>If you request an appointment, I also process the preferred day, time slot and type of call in order to arrange it with you (Art. 6 (1) (b) GDPR). You can send me suggestions via the feedback tab; an email address is optional there and only used for questions.</p>
 <h2>5. Website check</h2>
-<p>For the free website check, I visit the public website you name and check it on five points. I store the result with your enquiry in order to send it to you (Art. 6 (1) (b) GDPR).</p>
-<h2>6. Your rights</h2>
+<p>For the website check, my server visits the public website you name once and checks it on five points. With the instant check, the result is only displayed and not stored. If you request the check via the form, I store the result with your inquiry in order to send it to you (Art. 6 (1) (b) GDPR).</p>
+<h2>6. Audience measurement without cookies</h2>
+<p>To understand which content is read and used and to improve the website, a script on this server records during your visit: the page viewed, buttons and links clicked with their approximate position, how far a page was read, forms submitted (without their content), the domain of the referring page, language, device type, operating system and browser. No cookies are set and nothing is stored in your browser. Your IP address is not stored; it is only briefly combined with the browser identifier and a random value that changes daily into a shortened hash so that visitors can be counted per day. This does not allow conclusions about you as a person. The data stays on the web space at netcup and is not shared. I delete raw data after 14 months.</p>
+<p>The legal basis is my legitimate interest in a user-friendly and effective website (Art. 6 (1) (f) GDPR). If your browser sends “Do Not Track” or “Global Privacy Control”, no measurement takes place. You can object at any time; an email is sufficient.</p>
+<h2>7. Your rights</h2>
 <p>You have the right to access, rectification, erasure, restriction of processing, data portability and to object to processing based on Art. 6 (1) (f) GDPR. You can withdraw consent at any time with effect for the future. An email to <a href="mailto:{EMAIL}">{EMAIL}</a> is sufficient.</p>
 <p>You can lodge a complaint with a data protection supervisory authority, for example the State Commissioner for Data Protection and Freedom of Information Baden-Württemberg, Lautenschlagerstraße 20, 70173 Stuttgart, Germany.</p>
-<h2>7. Last updated</h2>
+<h2>8. Last updated</h2>
 <p>October 2026</p>'''
     body = f'<section class="legal"><div class="wrap" data-reveal="fade">{inner}</div></section>'
     return page(lang, 'datenschutz', L(lang, 'Datenschutz – Lou Digital', 'Privacy policy – Lou Digital'), L(lang, 'Datenschutzerklärung von Lou Digital.', 'Privacy policy of Lou Digital.'), body, noindex=True)
@@ -603,7 +682,7 @@ def outpath(path):
     if path.endswith('/'): return DIST / path.lstrip('/') / 'start.html'
     return DIST / (path.lstrip('/') + '.html')
 
-HTACCESS = r'''# Lou Digital, Version 10 (19.10.2026)
+HTACCESS = r'''# Lou Digital, Version 12 (24.10.2026)
 Options -Indexes -MultiViews
 DirectoryIndex start.html
 ErrorDocument 404 /404.html
@@ -642,8 +721,18 @@ RewriteRule ^(.+)$ /$1.html [L]
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
 Header always set X-Frame-Options "SAMEORIGIN"
-Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+Header always set Strict-Transport-Security "max-age=31536000"
+Header always set Cross-Origin-Opener-Policy "same-origin"
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-__INLINE__'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+Header always unset X-Powered-By
+Header unset X-Powered-By
 </IfModule>
+
+# Versteckte Dateien und Hilfsdateien nicht ausliefern
+<FilesMatch "^\.(?!well-known)|\.(md|py|log|bak|sql|ini|sh)$">
+Require all denied
+</FilesMatch>
 
 <IfModule mod_expires.c>
 ExpiresActive On
@@ -660,8 +749,7 @@ def build():
     if DIST.exists(): shutil.rmtree(DIST)
     shutil.copytree(ROOT / 'static', DIST)
     (DIST / 'css').mkdir(exist_ok=True)
-    css = (ROOT / 'static/css/base.css').read_text() + (ROOT / 'static/css/extra.css').read_text()
-    (DIST / 'css/site.css').write_text(css)
+    (DIST / 'css/site.css').write_text(SITE_CSS)
     (DIST / 'css/base.css').unlink(); (DIST / 'css/extra.css').unlink()
     for key, fn in BUILDERS.items():
         for lang in ('de', 'en'):
@@ -669,13 +757,13 @@ def build():
             p.write_text(fn(lang))
     (DIST / '404.html').write_text(notfound())
 
-    (DIST / '.htaccess').write_text(HTACCESS)
-    (DIST / 'robots.txt').write_text(f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {SITE}/sitemap.xml\n")
+    (DIST / '.htaccess').write_text(HTACCESS.replace('__INLINE__', INLINE_HASH))
+    (DIST / 'robots.txt').write_text(f"User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /statistik/\nSitemap: {SITE}/sitemap.xml\n")
     urls = []
     for key in PAGES:
         if key in ('impressum', 'datenschutz'): continue
         for lang in ('de', 'en'):
-            urls.append(f'''  <url><loc>{SITE}{url(key, lang)}</loc><lastmod>2026-10-19</lastmod>
+            urls.append(f'''  <url><loc>{SITE}{url(key, lang)}</loc><lastmod>2026-10-24</lastmod>
     <xhtml:link rel="alternate" hreflang="de" href="{SITE}{url(key, 'de')}"/>
     <xhtml:link rel="alternate" hreflang="en" href="{SITE}{url(key, 'en')}"/></url>''')
     (DIST / 'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + '\n'.join(urls) + '\n</urlset>\n')
