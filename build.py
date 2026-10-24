@@ -705,7 +705,10 @@ AddType application/manifest+json .webmanifest
 
 <IfModule mod_rewrite.c>
 RewriteEngine On
-# www und http -> https://lou-digital.de
+# http -> https (auch hinter dem nginx-Proxy von Plesk), www -> ohne www
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://lou-digital.de%{REQUEST_URI} [R=301,L]
 RewriteCond %{HTTP_HOST} ^www\.lou-digital\.de$ [NC]
 RewriteRule ^ https://lou-digital.de%{REQUEST_URI} [R=301,L]
 # direkte .html-Aufrufe auf saubere Adressen umleiten (nur echte Anfragen, keine Schleifen)
