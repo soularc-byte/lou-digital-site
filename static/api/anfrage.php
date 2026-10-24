@@ -5,7 +5,6 @@ declare(strict_types=1);
 define('LD', 1);
 require __DIR__ . '/inc/lib.php';
 
-const N8N_WEBHOOK = '';   // später z. B. https://n8n.oblivion-hq.duckdns.org/webhook/lou-anfrage
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') ld_json(405, ['ok' => false, 'error' => 'method']);
 if (ld_post('website', 200) !== '') ld_json(200, ['ok' => true]);           // Falle für Bots
@@ -153,12 +152,14 @@ if ($email !== '') {
   ld_send($email, $cs, html_entity_decode($ct, ENT_QUOTES, 'UTF-8'), ld_mail_html($lang, $cs, $ci, $crows, $check ? ld_check_html($check, $lang) : ''), LD_TO);
 }
 
-/* Optional: an n8n weiterreichen (Tabelle, Telegram) */
-if (N8N_WEBHOOK !== '' && function_exists('curl_init')) {
-  $ch = curl_init(N8N_WEBHOOK);
-  curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 4, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+/* An n8n weiterreichen (Telegram-Meldung + Leads-Tabelle). Adresse steht in ld-private/n8n.php, nicht im Repo. */
+$hook = ld_n8n_hook();
+if ($hook !== '' && function_exists('curl_init')) {
+  $ch = curl_init($hook);
+  curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 5, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
     CURLOPT_POSTFIELDS => json_encode(['art' => $kind, 'auswahl' => $topic, 'termin' => $terminText, 'name' => $name, 'firma' => $company, 'email' => $email, 'telefon' => $phone,
-      'website_url' => $url, 'check' => $check ? $check['score'] . '/5' : '', 'zusammenstellung' => $pkg, 'nachricht' => $msg, 'sprache' => $lang, 'quelle' => 'lou-digital.de'], JSON_UNESCAPED_UNICODE)]);
+      'website_url' => $url, 'check' => $check && !empty($check['ok']) ? $check['score'] . '/5' : '', 'zusammenstellung' => $pkg, 'nachricht' => $msg, 'sprache' => $lang,
+      'seite' => $page, 'zeit' => date('Y-m-d H:i'), 'quelle' => 'lou-digital.de'], JSON_UNESCAPED_UNICODE)]);
   @curl_exec($ch); curl_close($ch);
 }
 
