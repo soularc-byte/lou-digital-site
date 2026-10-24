@@ -167,7 +167,7 @@ function ld_fetch(string $url, int $hops = 4, bool $verify = true): array {
     $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $loc = (string)curl_getinfo($ch, CURLINFO_REDIRECT_URL);
     $errno = curl_errno($ch); curl_close($ch);
-    if ($errno && !$tooBig) { $res['err'] = in_array($errno, [35, 51, 58, 60, 77], true) ? 'tls' : 'net'; $res['ms'] = (int)((microtime(true) - $t0) * 1000); return $res; }
+    if ($errno && !$tooBig) { $res['err'] = in_array($errno, [51, 60], true) ? 'tls' : ($errno === 35 ? 'tls35' : 'net'); $res['code'] = $errno; $res['ms'] = (int)((microtime(true) - $t0) * 1000); return $res; }
     if ($code >= 300 && $code < 400 && $loc !== '') { $url = $loc; continue; }
     $res['ok'] = $code >= 200 && $code < 400; $res['url'] = $url; $res['tls'] = $https; $res['html'] = $buf; $res['code'] = $code;
     $res['ms'] = (int)((microtime(true) - $t0) * 1000);
@@ -182,6 +182,8 @@ function ld_check(string $input, string $lang): array {
   if (!$n) return ['ok' => false, 'error' => 'url'];
   if (!function_exists('curl_init')) return ['ok' => false, 'error' => 'server'];
   $r = ld_fetch('https://' . $n['host'] . $n['path']);
+  if (!$r['ok'] && in_array($r['err'], ['tls', 'tls35', 'net'], true)) { usleep(400000); $r = ld_fetch('https://' . $n['host'] . $n['path']); }   // zweiter Versuch gegen kurze Aussetzer
+  if (!$r['ok'] && $r['err'] === 'tls35') $r['err'] = 'net';
   $httpsOk = $r['ok'] && $r['tls'] && stripos($r['url'], 'https://') === 0;
   $tlsBad = false;
   if (!$r['ok']) {
