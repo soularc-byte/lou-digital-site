@@ -5,6 +5,7 @@ ErrorDocument 404 /404.html
 AddDefaultCharset utf-8
 AddType font/woff2 .woff2
 AddType image/webp .webp
+AddType application/manifest+json .webmanifest
 
 <IfModule mod_rewrite.c>
 RewriteEngine On
