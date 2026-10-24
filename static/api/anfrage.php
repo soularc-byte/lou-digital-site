@@ -53,13 +53,14 @@ if (mb_strlen($name) < 2) $errors[] = 'name';
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'email';
 if ($phone !== '' && !preg_match('/^[+\d][\d\s\/()-]{5,24}$/', $phone)) $errors[] = 'telefon';
 if ($topicId === 'check' && $url === '') $errors[] = 'website_url';
+if ($topicId === 'frage' && mb_strlen($msg) < 5) $errors[] = 'nachricht';
 if ($url !== '' && !preg_match('~^(https?://)?[\w-]+(\.[\w-]+)+(/\S*)?$~i', $url)) $errors[] = 'website_url';
 if ($consent !== '1') $errors[] = 'einwilligung';
 if ($errors) out(422, ['ok' => false, 'error' => 'invalid', 'fields' => $errors]);
 
 $when = date('d.m.Y H:i');
 $lines = [
-  "Neue Anfrage über lou-digital.de ($when, Sprache: " . strtoupper($lang) . ")",
+  "Neue " . ($topicId === 'frage' ? 'Frage' : 'Anfrage') . " über lou-digital.de ($when, Sprache: " . strtoupper($lang) . ")",
   '',
   "Anliegen:  $topic",
   "Name:      $name",
@@ -87,17 +88,18 @@ function send(string $to, string $subject, string $body, string $replyTo = ''): 
   return @mail($to, enc($subject), $body, implode("\r\n", $h), '-f' . FROM);
 }
 
-$subject = 'Anfrage: ' . $topic . ' – ' . $name;
+$isQ = ($topicId === 'frage');
+$subject = ($isQ ? 'Frage: ' . mb_substr(oneLine($msg), 0, 60) : 'Anfrage: ' . $topic) . ' – ' . $name;
 $sent = send(TO, $subject, $body, $email);
 if (!$sent) out(500, ['ok' => false, 'error' => 'mail']);
 
 // Bestätigung an den Absender (ohne Inhalte der Anfrage, damit das Formular nicht zum Spam-Versand taugt)
 if ($lang === 'en') {
   $cs = 'Your enquiry to Lou Digital';
-  $cb = "Hello $name,\n\nthank you for your enquiry. It has arrived and I will reply personally, usually within two working days.\n\nBest regards\nAdrian Semlinger\nLou Digital, Karlsruhe\nhttps://lou-digital.de\n\nThis is an automatic message. Please reply to info@lou-digital.de.";
+  $cb = "Hello $name,\n\nthank you for your enquiry. It has arrived and I will reply personally, usually within 24 hours on working days.\n\nBest regards\nAdrian Semlinger\nLou Digital, Karlsruhe\nhttps://lou-digital.de\n\nThis is an automatic message. Please reply to info@lou-digital.de.";
 } else {
   $cs = 'Ihre Anfrage bei Lou Digital';
-  $cb = "Guten Tag $name,\n\nvielen Dank für Ihre Anfrage. Sie ist bei mir angekommen, ich melde mich persönlich, in der Regel innerhalb von zwei Werktagen.\n\nViele Grüße\nAdrian Semlinger\nLou Digital, Karlsruhe\nhttps://lou-digital.de\n\nDies ist eine automatische Nachricht. Antworten Sie bitte an info@lou-digital.de.";
+  $cb = "Guten Tag $name,\n\nvielen Dank für Ihre Anfrage. Sie ist bei mir angekommen, ich melde mich persönlich, in der Regel innerhalb von 24 Stunden an Werktagen.\n\nViele Grüße\nAdrian Semlinger\nLou Digital, Karlsruhe\nhttps://lou-digital.de\n\nDies ist eine automatische Nachricht. Antworten Sie bitte an info@lou-digital.de.";
 }
 send($email, $cs, $cb, TO);
 
