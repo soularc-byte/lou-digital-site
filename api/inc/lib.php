@@ -43,6 +43,17 @@ function ld_line(string $v): string { return trim(preg_replace('/\s+/u', ' ', $v
 function ld_h(string $v): string { return htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function ld_enc(string $s): string { return '=?UTF-8?B?' . base64_encode($s) . '?='; }
 
+/* Private Einstellung aus ld-private/<name>.php (liegt außerhalb von httpdocs und nicht im Repo) */
+function ld_private(string $name) {
+  $f = dirname(ld_root()) . '/ld-private/' . preg_replace('/[^a-z0-9_-]/', '', $name) . '.php';
+  return is_file($f) ? (include $f) : null;
+}
+/* Webhook-Adresse für n8n (Telegram-Meldung + Leads-Tabelle), nur https auf der eigenen n8n-Instanz */
+function ld_n8n_hook(): string {
+  $u = ld_private('n8n');
+  return (is_string($u) && preg_match('~^https://n8n\.oblivion-hq\.duckdns\.org/webhook/[A-Za-z0-9_-]+$~', $u)) ? $u : '';
+}
+
 /* ---------- Mailversand: SMTP mit Anmeldung, wenn ld-private/smtp.php existiert, sonst PHP mail() ---------- */
 function ld_smtp_cfg(): ?array {
   $f = dirname(ld_root()) . '/ld-private/smtp.php';
