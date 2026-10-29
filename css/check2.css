@@ -1,0 +1,169 @@
+/* Lou Digital – 100-Punkte-Website-Check (27.10.2026). Ergänzt site.css, ablauf.css und check.css. */
+[hidden] { display: none !important; }
+
+/* Fortschritt: neun Bereiche */
+.c100-lauf .c50-schritte { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .c100-lauf .c50-schritte { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .c100-lauf .c50-schritte { grid-template-columns: minmax(0, 1fr); } }
+
+/* Stufen: Kritisch, Wichtig, Empfohlen */
+.c100-stufen span.t1 { background: #fbe4e2; color: var(--danger); }
+.c100-stufen span.t2 { background: #f7efd3; color: #7a5d00; }
+.c100-stufen span.t3 { background: var(--brand-soft); color: var(--brand); }
+.c100-gew { margin-top: 8px; font-size: 14px; color: var(--ink-muted); max-width: 62ch; }
+.s3 .c50-badge, .c100-katalog li.s3 .c50-badge { background: var(--brand-soft); color: var(--brand); }
+
+/* Bereiche: drei Spalten (9 Kacheln) */
+.c100 .c50-gruppen { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 860px) { .c100 .c50-gruppen { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .c100 .c50-gruppen { grid-template-columns: minmax(0, 1fr); } }
+
+/* Info-Knopf */
+.c100-info { flex: none; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 1.5px solid var(--line-strong); background: var(--raised); color: var(--ink);
+  display: inline-grid; place-items: center; font: 600 14px/1 var(--font-mono); cursor: pointer; transition: background-color .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease); }
+.c100-info:hover { border-color: var(--brand); color: var(--brand); }
+.c100-info:focus-visible { outline: 3px solid rgba(11, 110, 105, .35); outline-offset: 2px; }
+.c100-info[aria-expanded="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.c100-info span { pointer-events: none; }
+.c100-infotext { min-width: 0; padding: 14px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; line-height: 1.5; }
+.c100-infotext dl { margin: 0; display: grid; gap: 4px; }
+.c100-infotext dt { font-weight: 600; font-size: 14px; color: var(--ink); }
+.c100-infotext dt:not(:first-child) { margin-top: 8px; }
+.c100-infotext dd { margin: 0; color: var(--ink-muted); overflow-wrap: anywhere; }
+.c100-leistung { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14.5px; font-weight: 600; color: var(--brand); }
+
+/* Prioritäten */
+.c100-ph { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-width: 0; }
+.c100-ph .c50-ph { min-width: 0; }
+.c100-ph strong { overflow-wrap: anywhere; }
+.c100-loes { font-size: 14.5px; color: var(--brand); font-weight: 600; }
+.c50-prio li.s3 { border-left-color: var(--brand); }
+
+/* So kann ich helfen */
+.c100-hilfe { padding: clamp(16px, 2.4vw, 22px); border-radius: 14px; background: var(--brand-soft); display: grid; gap: 10px; }
+.c100-hilfe h4 { font-size: 18px; letter-spacing: -.01em; margin: 0; }
+.c100-hilfep { font-size: 15px; color: var(--ink-muted); }
+.c100-hilfe ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.c100-hilfe li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 14px; border-radius: 10px; background: var(--raised); }
+.c100-hilfe li strong { font-size: 15.5px; overflow-wrap: anywhere; }
+.c100-hz { font: 500 13px/1.5 var(--font-mono); color: var(--brand); white-space: nowrap; }
+.c100-ht { grid-column: 1 / -1; font-size: 14.5px; }
+.c100-hilfe li small { grid-column: 1 / -1; font-size: 14px; color: var(--ink-muted); overflow-wrap: anywhere; }
+@media (max-width: 420px) { .c100-hilfe li { grid-template-columns: minmax(0, 1fr); } }
+
+/* Alle 100 Punkte */
+.c100-liste li { grid-template-columns: 24px minmax(0, 1fr) auto; align-items: start; }
+.c100-liste li > b { line-height: 1.5; }
+.c100-txt { display: grid; gap: 2px; min-width: 0; }
+.c100-txt strong { font-weight: 600; overflow-wrap: anywhere; }
+.c100-liste li .c100-txt small { grid-column: auto; margin: 0; font-size: 14px; color: var(--ink-muted); overflow-wrap: anywhere; }
+.c100-liste li .c100-re, .c100-re { display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: nowrap; }
+.c100-liste li .c100-re .c50-badge { display: inline-block; }
+.c100-re em { white-space: nowrap; }
+.c100-re em { min-width: 5.5em; text-align: right; }
+.c100-liste .c100-infotext { grid-column: 2 / -1; }
+.c100-liste li.na .c50-badge { opacity: .7; }
+@media (max-width: 620px) {
+  .c100-liste li { grid-template-columns: 24px minmax(0, 1fr); }
+  .c100-liste li .c100-re { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+  .c100-re em { min-width: 0; text-align: left; }
+  .c100-liste .c100-infotext { grid-column: 1 / -1; }
+}
+
+/* Ergebnisblatt anfordern */
+.c100-lead { border-top: 1px solid var(--line); padding-top: 18px; }
+.c100-form { background: var(--surface); }
+.c100-form .field input, .c100-form .field textarea { background: var(--raised); }
+.c100-leadp { font-size: 15.5px; color: var(--ink-muted); margin-top: -6px; }
+.c100-form .c50-h4 { margin: 0; }
+.c100-form textarea { min-height: 88px; }
+.c100-sumnote { font-size: 13.5px; color: var(--ink-muted); }
+.c100-form .btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.25; }
+.c100-sent h4 { margin: 0; }
+.consent.invalid { color: var(--danger); }
+
+/* Seite: Katalog mit Info-Knopf und Beispiel */
+.c100-katalog li { grid-template-columns: 8.8rem minmax(0, 1fr) auto; }
+.c100-katalog summary .zahl { white-space: nowrap; }
+.c100-katalog li .c100-info { grid-column: 3; grid-row: 1; align-self: start; }
+.c100-katalog li small { grid-column: 2 / 4; }
+.c100-katalog li .c100-infotext { grid-column: 2 / 4; }
+@media (max-width: 560px) {
+  .c100-katalog li { grid-template-columns: minmax(0, 1fr) auto; }
+  .c100-katalog li .c50-badge { grid-column: 1; }
+  .c100-katalog li b { grid-column: 1; }
+  .c100-katalog li .c100-info { grid-column: 2; grid-row: 1 / 3; }
+  .c100-katalog li small, .c100-katalog li .c100-infotext { grid-column: 1 / -1; }
+}
+.c100-stufen-erkl { list-style: none; padding: 0; margin: clamp(22px, 3vw, 32px) 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.c100-stufen-erkl li { padding: 20px 20px 22px; border-radius: var(--r-card); background: var(--raised); border: 1px solid var(--line); display: grid; gap: 8px; align-content: start; }
+.c100-stufen-erkl b { font: 500 26px/1 var(--font-mono); letter-spacing: -.03em; }
+.c100-stufen-erkl .c50-badge { justify-self: start; }
+.c100-stufen-erkl p { font-size: 15.5px; color: var(--ink-muted); }
+.c100-stufen-erkl li.s1 .c50-badge { background: #fbe4e2; color: var(--danger); }
+.c100-stufen-erkl li.s2 .c50-badge { background: #f7efd3; color: #7a5d00; }
+@media (max-width: 760px) { .c100-stufen-erkl { grid-template-columns: minmax(0, 1fr); } }
+.c100-bereiche { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1000px) { .c100-bereiche { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .c100-bereiche { grid-template-columns: minmax(0, 1fr); } }
+
+/* ===== Version 4 (28.10.2026): Ablauf in neun Bereichen, gezählt wird immer von 100 ===== */
+.c100-lauf { display: grid; gap: 16px; }
+.c100-lk { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; align-items: baseline; }
+.c100-lh { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+.c100-lz { font: 500 14px/1.3 var(--font-mono); color: var(--ink-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.c100-lb { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.c100-lb i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--brand); transition: width .45s cubic-bezier(.05, .7, .1, 1); }
+.c100-lg { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.c100-lg li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 2px 10px; align-content: start; padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-muted); transition: border-color .3s var(--ease), background-color .3s var(--ease), opacity .3s var(--ease); }
+.c100-li { grid-row: 1 / span 3; margin-top: 3px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-strong); }
+.c100-ln { font-weight: 600; font-size: 15px; color: var(--ink); overflow-wrap: anywhere; }
+.c100-ls { font: 500 13px/1.35 var(--font-mono); font-variant-numeric: tabular-nums; }
+.c100-lt { font-size: 13px; line-height: 1.35; min-height: 1.35em; overflow-wrap: anywhere; }
+.c100-lg li[data-s="offen"] { opacity: .72; }
+.c100-lg li[data-s="an"] { border-color: var(--brand); background: var(--raised); }
+.c100-lg li[data-s="an"] .c100-li { border-color: var(--brand); border-right-color: transparent; animation: c50-dreh .8s linear infinite; }
+.c100-lg li[data-s="fertig"] .c100-li { background: var(--brand); border-color: var(--brand); }
+.c100-lg li[data-s="fertig"].mittel .c100-li { background: #c9a227; border-color: #c9a227; }
+.c100-lg li[data-s="fertig"].schwach .c100-li { background: var(--danger); border-color: var(--danger); }
+@media (max-width: 860px) { .c100-lg { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) {
+  .c100-lg { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .c100-lg li { padding: 10px 12px; }
+  .c100-lt { min-height: 0; }
+  .c100-lg li:not([data-s="an"]) .c100-lt { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .c100-lb i { transition: none; }
+  .c100-lg li[data-s="an"] .c100-li { animation: none; border-right-color: var(--brand); }
+}
+/* Ergebnis: Gesamtwert im Ring, Zählung von 100 */
+.c100-ring b { display: inline-flex; align-items: baseline; justify-content: center; }
+.c100-ring b .c100-zn { font: inherit; color: inherit; margin: 0; }
+.c100-ring b .c100-pz { font: 500 18px/1 var(--font-mono); color: var(--ink-muted); margin: 0 0 0 2px; }
+.c100-ring small { display: block; margin-top: 6px; font-size: 12px; line-height: 1; color: var(--ink-muted); }
+@media (max-width: 560px) { .c100-ring small { font-size: 11px; margin-top: 4px; } }
+.c100-zahlen { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 10px; font-size: 15px; }
+.c100-zahlen span { display: inline-flex; align-items: baseline; gap: 6px; }
+.c100-zahlen b { font-weight: 700; }
+.c100-zahlen .z-ok b { color: var(--brand); }
+.c100-zahlen .z-fehlt b { color: var(--danger); }
+.c100-zahlen .z-na b, .c100-zahlen .z-np b { color: var(--ink-muted); }
+.c100-gb { display: flex; }
+.c50-gruppen li .c50-gb.c100-gb i { border-radius: 0; transition: none; }
+.c50-gruppen li .c50-gb.c100-gb i.g-ok { background: var(--brand); }
+.c50-gruppen li .c50-gb.c100-gb i.g-fehlt { background: var(--danger); }
+.c50-gruppen li .c50-gb.c100-gb i.g-na { background: #c4cbc8; }
+.c50-gruppen li .c50-gb.c100-gb i.g-np { background: repeating-linear-gradient(135deg, #aab3b0 0 2px, #e6eae8 2px 5px); }
+.checks .np b, .checks .np em { color: var(--ink-muted); }
+.c100-liste li.np .c50-badge { opacity: .7; }
+@media (forced-colors: active) { .c50-gruppen li .c50-gb.c100-gb i { forced-color-adjust: none; } }
+
+/* Version 28: Strich je Bereich, füllt sich erst schnell, dann langsam */
+.c100-lg li { position: relative; overflow: hidden; }
+.c100-lp { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; pointer-events: none; }
+.c100-lp i { display: block; height: 100%; width: 0; background: var(--brand); border-radius: 0 3px 3px 0; transition: width .55s cubic-bezier(.05, .7, .1, 1), background-color .4s ease-out; }
+.c100-lg li[data-s="fertig"] .c100-lp i { border-radius: 0; }
+.c100-lg li[data-s="fertig"].mittel .c100-lp i { background: #c9a227; }
+.c100-lg li[data-s="fertig"].schwach .c100-lp i { background: var(--danger); }
+@media (prefers-reduced-motion: reduce) { .c100-lp i { transition: none; } }

@@ -1,0 +1,4 @@
+Contact: mailto:info@lou-digital.de
+Expires: 2027-10-27T00:00:00.000Z
+Preferred-Languages: de, en
+Canonical: https://lou-digital.de/.well-known/security.txt

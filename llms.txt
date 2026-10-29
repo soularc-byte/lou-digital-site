@@ -1,0 +1,46 @@
+# Lou Digital
+
+> Webdesign, Websites und Automatisierung mit n8n und KI für kleine und mittlere Unternehmen. Inhaber ist Adrian Semlinger mit Sitz in Karlsruhe. Er arbeitet persönlich vor Ort in Karlsruhe und deutschlandweit per E-Mail und Telefon. Feste Pakete, klare Preise, ein Ansprechpartner. Die Website gibt es auf Deutsch und Englisch.
+
+- Inhaber: Adrian Semlinger, Karlsruhe (Anschrift im Impressum)
+- E-Mail: info@lou-digital.de
+- Telefon und WhatsApp: +49 156 30163539
+- Antwort: sofort eine Bestätigung per E-Mail, persönlich in der Regel innerhalb von 24 Stunden an Werktagen
+- Steuer: Kleinunternehmer nach § 19 UStG, alle Preise ohne Umsatzsteuer
+- Anfrage: https://lou-digital.de/kontakt
+
+## Leistungen und Preise
+- [Website in 7 Tagen](https://lou-digital.de/websites): Onepager oder bis zu fünf Seiten, mobil optimiert, mit Kontaktformular und einer Korrekturrunde. Domain, Hosting und Zugänge laufen auf den Namen des Kunden. 790 €, Pilotpreis 390 € für die ersten drei Kunden, die eine Referenz erlauben
+- [Anfrage-Automatik](https://lou-digital.de/automatik): Jede Anfrage aus dem Kontaktformular landet in einer Tabelle und als Nachricht auf dem Handy, der Kunde bekommt sofort eine Bestätigung, später eine Bewertungsbitte. Eingerichtet in 5 Tagen, 590 €, Pilotpreis 290 €
+- [Automatisierung mit n8n und KI](https://lou-digital.de/automatisierung): Wiederkehrende Abläufe wie Anfragen, Angebote, Termine, Datenabgleich und Berichte automatisieren. Die KI fasst zusammen, übersetzt und schreibt Antwortentwürfe aus dem Betriebswissen des Kunden, Zusagen, Preise und Termine bestätigt der Kunde selbst. Auf der Seite zum Ausprobieren gibt es den Weg einer Anfrage, einen Regler mit drei Stufen (von Hand, sortiert, vorbereitet) und einen Zeitrechner. Fester Preis nach dem Gespräch, laufende Kosten etwa für Server oder KI-Dienst werden vorher genannt
+- [Kostenloser Website-Check](https://lou-digital.de/website-check): 100 Prüfpunkte in neun Bereichen (Sicherheit, Recht und Datenschutz, Adresse und Erreichbarkeit, Handy, Google, Geschwindigkeit, Kontakt und Vertrauen, Anbindungen wie Formular, Karte, Buchung und WhatsApp, E-Mail der Domain), eingeteilt in 10 kritische, 30 wichtige und 60 empfohlene Punkte. Sofort-Check online ohne Speicherung oder ausführliches Ergebnisblatt
+- [Kundenumfrage](https://lou-digital.de/pakete): Umfrage mit Versandlink, Auswertung als Bericht auf einer Seite. In 7 Tagen, 290 €, Pilotpreis 190 €
+- [Betreuung](https://lou-digital.de/pakete#mehr-betreuung): Erreichbarkeit alle 5 Minuten geprüft, tägliche Sicherung (30 Tage aufbewahrt), Updates und Sicherheitsprüfung, SSL-Zertifikat im Blick, Monatsbericht. S 29 €, M 49 € mit 30 Minuten Änderungen, L 79 € mit einer Stunde Änderungen und Antwort am selben Werktag, jeweils im Monat. Änderungszeit in 15-Minuten-Schritten, nicht genutzte Zeit geht einen Monat mit, zusätzliche Zeit 15 € je angefangene 15 Minuten
+- [Zusatzdienste](https://lou-digital.de/pakete#zusatzdienste): Jedes Grundpaket lässt sich erweitern, einmalige Preise. Für Ihre Website: Weitere Seite 60 € je Seite, Texte für Ihre Seiten 40 € je Seite, Zweite Sprache 190 €, Online-Terminbuchung 90 €, Umzug Ihrer bisherigen Website 149 €, Google-Unternehmensprofil 79 €, Zusätzliche Korrekturrunde 49 €, Grafiken im Stil Ihrer Marke ab 120 €. Für die Anfrage-Automatik: Weiterer Eingang 90 € je Kanal, KI-Kurzfassung und Antwortvorschlag 190 €, Terminerinnerung 90 €, Monatsbericht per E-Mail 90 €, Anbindung an Ihr Programm ab 149 €. Für die Kundenumfrage: Weitere Umfragerunde 49 € je Runde, Versand per E-Mail 49 €, Umfrage in zweiter Sprache 49 €. Zum Website-Check: Besprechung des Ergebnisses kostenlos, Umsetzung der fehlenden Punkte nach Absprache
+- [Individuelles Paket](https://lou-digital.de/individuell): Grundpakete, Betreuung und Zusatzdienste frei kombinieren, mit Mengen, der Preis steht sofort da
+
+## Ablauf einer Website
+1. Kostenloser Website-Check
+2. Fragebogen mit Logo, Fotos, Leistungen, Öffnungszeiten und Angaben für das Impressum, ab dann laufen die 7 Tage
+3. Bau mit Zwischenständen und einer Korrekturrunde
+4. Livegang, auf Wunsch mit Betreuung
+
+## Häufige Fragen
+- Wem gehören Domain und Website? Dem Kunden. Domain, Hosting und Zugänge laufen auf seinen Namen, bei einem Wechsel nimmt er alles mit.
+- Entscheidet die KI etwas allein? Nein. Die KI bereitet nur vor, Zusagen, Preise und Termine bestätigt der Kunde selbst.
+- Braucht man neue Software? Nein. Angebunden werden die Programme, die schon genutzt werden, zum Beispiel E-Mail, Tabellen, Kalender und Messenger.
+- Was ist der Unterschied zu ChatGPT? Ein allgemeiner Chatbot kennt den Betrieb nicht. Hier arbeitet die KI mit den eigenen Unterlagen des Kunden, in seinen Programmen und nur so weit, wie er es freigibt.
+- Nur in Karlsruhe? Sitz und Termine vor Ort in Karlsruhe, Termine außerhalb nach kurzer Absprache, alles andere deutschlandweit per E-Mail und Telefon.
+- Mehr Antworten: https://lou-digital.de/fragen
+
+## Über Lou Digital
+- [Über mich](https://lou-digital.de/ueber-mich): Adrian Semlinger, kaufmännischer Hintergrund, baut Websites und Automatisierungen mit festen Paketen und einem Ansprechpartner
+- [Häufige Fragen](https://lou-digital.de/fragen)
+- [Kontakt](https://lou-digital.de/kontakt)
+- [Instagram](https://www.instagram.com/lou.digitai/)
+
+## English
+- [English version](https://lou-digital.de/en/): web design, websites in 7 days and process automation with n8n and AI from Karlsruhe, Germany. Fixed packages and prices, one contact person, answers in German and English
+- [Process automation with n8n and AI](https://lou-digital.de/en/process-automation)
+- [Packages and prices](https://lou-digital.de/en/packages)
+- [Free website check](https://lou-digital.de/en/website-check)
