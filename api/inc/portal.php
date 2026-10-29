@@ -219,3 +219,60 @@ function ld_website_pruefen(int $kunde, string $url): ?array {
   pd_q('DELETE FROM pruefungen WHERE kunde_id = ? AND zeit < ?', [$kunde, date('Y-m-d H:i:s', strtotime('-400 days'))]);
   return $row;
 }
+
+/* ---------- Monatsbericht als PDF (Version 30) ---------- */
+function ld_bericht_pdf(array $k, string $monat): string {
+  require_once __DIR__ . '/pdf.php';
+  $kid = (int)$k['id']; $von = $monat . '-01 00:00:00'; $bis = date('Y-m-t 23:59:59', strtotime($von)); $mName = date('m/Y', strtotime($von));
+  $pr = pd_row('SELECT COUNT(*) n, SUM(ok) o, AVG(ms) ms, MAX(ms) mx FROM pruefungen WHERE kunde_id = ? AND zeit BETWEEN ? AND ?', [$kid, $von, $bis]);
+  $tk = pd_all("SELECT betreff, art, status, minuten, angelegt FROM tickets WHERE kunde_id = ? AND art <> 'bot' AND angelegt BETWEEN ? AND ? ORDER BY id", [$kid, $von, $bis]);
+  $st = pd_all('SELECT zeit, code FROM pruefungen WHERE kunde_id = ? AND ok = 0 AND zeit BETWEEN ? AND ? ORDER BY zeit', [$kid, $von, $bis]);
+  $ws = pd_all('SELECT name, status, laeufe, fehler, letzter_lauf FROM workflows WHERE kunde_id = ?', [$kid]);
+  $ssl = pd_row("SELECT ssl_bis FROM pruefungen WHERE kunde_id = ? AND ssl_bis <> '' ORDER BY id DESC LIMIT 1", [$kid]);
+  $min = array_sum(array_map(function ($t) { return (int)$t['minuten']; }, $tk));
+  $inkl = LD_TIER_MIN[$k['stufe']] ?? 0;
+  $p = new LdPdf('Monatsbericht ' . $mName . ' – ' . ($k['firma'] !== '' ? $k['firma'] : $k['name']), 'Lou Digital · Adrian Semlinger · Karlsruhe · info@lou-digital.de · ' . LD_PHONE);
+  $p->text('LOU DIGITAL', 9, 'F2', 0, 0, 1); $p->leer(14);
+  $p->titel('Monatsbericht ' . $mName);
+  $p->zeile(($k['firma'] !== '' ? $k['firma'] . ' · ' : '') . $k['name'] . ($k['website'] !== '' ? ' · ' . $k['website'] : '') . ' · Betreuung ' . ($k['stufe'] !== '' ? $k['stufe'] : 'keine'), 10);
+  $p->leer(10);
+  $verf = $pr && (int)$pr['n'] ? number_format((int)$pr['o'] / (int)$pr['n'] * 100, 2, ',', '.') . ' %' : '–';
+  $p->kacheln([[$verf, 'Erreichbarkeit (' . (int)($pr['n'] ?? 0) . ' Prüfungen)'], [$pr && $pr['ms'] ? (int)$pr['ms'] . ' ms' : '–', 'Ø Antwortzeit' . ($pr && $pr['mx'] ? ', max. ' . (int)$pr['mx'] . ' ms' : '')], [(string)count($st), 'Störungen'], [$min . ' Min.', 'Änderungen' . ($inkl ? ' (' . $inkl . ' Min. inkl.)' : '')]]);
+  $p->abschnitt('Website');
+  $p->zeile('Alle fünf Minuten wurde geprüft, ob ' . ($k['website'] !== '' ? $k['website'] : 'Ihre Website') . ' erreichbar ist und wie schnell sie antwortet. ' . ($st ? count($st) . ' Prüfung(en) meldeten eine Störung (siehe unten).' : 'In diesem Monat gab es keine Störung.') . ($ssl ? ' Das Zertifikat (HTTPS) ist gültig bis ' . date('d.m.Y', strtotime($ssl['ssl_bis'])) . ' und verlängert sich automatisch.' : ''));
+  if ($st) { $rows = [['Zeitpunkt', 'Antwort']]; foreach (array_slice($st, 0, 40) as $x) $rows[] = [date('d.m.Y H:i', strtotime($x['zeit'])), (int)$x['code'] ? 'HTTP ' . (int)$x['code'] : 'keine Antwort']; $p->leer(6); $p->tabelle($rows, [160, 320]); }
+  $p->abschnitt('Änderungen und Nachrichten');
+  if ($tk) { $rows = [['Datum', 'Betreff', 'Art', 'Status', 'Min.']]; $ART = ['support' => 'Support', 'aenderung' => 'Änderung', 'frage' => 'Frage', 'upgrade' => 'Betreuung']; $STA = ['offen' => 'offen', 'in_arbeit' => 'in Arbeit', 'wartet' => 'wartet', 'erledigt' => 'erledigt']; foreach ($tk as $t) $rows[] = [date('d.m.', strtotime($t['angelegt'])), $t['betreff'], $ART[$t['art']] ?? $t['art'], $STA[$t['status']] ?? $t['status'], (string)(int)$t['minuten']]; $p->tabelle($rows, [50, 240, 70, 70, 50]); }
+  else $p->zeile('Keine Nachrichten in diesem Monat.');
+  if ($inkl) $p->zeile(($min <= $inkl ? 'Alle Änderungen waren im Betreuungsumfang enthalten.' : ($min - $inkl) . ' Minuten über dem Umfang, abgerechnet mit der nächsten Rechnung.'), 10);
+  if ($ws) { $p->abschnitt('Automatik'); $rows = [['Workflow', 'Status', 'Läufe', 'Fehler', 'Letzter Lauf']]; foreach ($ws as $w) $rows[] = [$w['name'], $w['status'], (string)(int)$w['laeufe'], (string)(int)$w['fehler'], $w['letzter_lauf'] !== '' ? date('d.m.Y', strtotime($w['letzter_lauf'])) : '–']; $p->tabelle($rows, [200, 70, 60, 60, 90]); }
+  $p->abschnitt('Und sonst');
+  $p->zeile('Fragen oder Wünsche: einfach im Kundenportal unter „Nachrichten“ schreiben oder anrufen. Empfehlen Sie Lou Digital weiter: Ihr Code ' . ($k['empfehlungscode'] !== '' ? $k['empfehlungscode'] : '(im Portal)') . ' bringt dem Neukunden ' . LD_EMPF_PROZENT . ' % und Ihnen ' . LD_EMPF_GUTSCHRIFT . ' € Gutschrift.');
+  $p->leer(8); $p->zeile('Erstellt am ' . date('d.m.Y') . ' · ' . LD_SITE . '/portal', 8.5);
+  return $p->ausgabe();
+}
+/* Bericht als Dokument ablegen (einmal je Monat) und Kunden informieren */
+function ld_bericht_ablegen(array $k, string $monat, bool $mail = true): ?int {
+  $kid = (int)$k['id'];
+  if (pd_row("SELECT 1 FROM dokumente WHERE kunde_id = ? AND art = 'bericht' AND datei LIKE ?", [$kid, 'bericht-' . $monat . '%'])) return null;
+  $dir = ld_dir('ld-data') . '/portal-dokumente/' . $kid; if (!is_dir($dir)) @mkdir($dir, 0750, true);
+  $name = 'bericht-' . $monat . '-' . bin2hex(random_bytes(3)) . '.pdf';
+  $pdf = ld_bericht_pdf($k, $monat);
+  if (@file_put_contents($dir . '/' . $name, $pdf) === false) return null;
+  pd_q('INSERT INTO dokumente (kunde_id, titel, datei, art, groesse, angelegt) VALUES (?, ?, ?, ?, ?, ?)', [$kid, 'Monatsbericht ' . date('m/Y', strtotime($monat . '-01')), $name, 'bericht', strlen($pdf), pd_now()]);
+  $id = (int)pd()->lastInsertId();
+  if ($mail && filter_var($k['email'], FILTER_VALIDATE_EMAIL)) {
+    $t = 'Ihr Monatsbericht ' . date('m/Y', strtotime($monat . '-01')) . ' liegt im Kundenportal';
+    ld_send((string)$k['email'], $t, "Guten Tag " . $k['name'] . ",\n\nIhr Monatsbericht (Erreichbarkeit, Antwortzeit, Änderungen, Automatik) liegt im Kundenportal unter „Dokumente“:\n" . LD_SITE . "/portal/dokumente\n\nViele Grüße\nAdrian Semlinger\nLou Digital, Karlsruhe\n" . LD_PHONE,
+      ld_mail_html('de', $t, '<p style="margin:0">Guten Tag ' . ld_h($k['name']) . ',</p><p style="margin:10px 0 0">Ihr Monatsbericht mit Erreichbarkeit, Antwortzeit, Änderungen und Automatik liegt im Kundenportal unter „Dokumente“.</p>', [], '<p style="margin:16px 0"><a href="' . LD_SITE . '/portal/dokumente" style="display:inline-block;background:#0b6e69;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:999px;font-weight:bold;font-size:15px">Zum Bericht</a></p>'), LD_TO);
+  }
+  return $id;
+}
+/* Telegram-Hinweis an Adrian über n8n LD-09 (Adresse unter Büro → Einstellungen), zusätzlich zur Mail */
+function ld_portal_hook(string $text): void {
+  try { $url = pd_get('bot_url'); } catch (Throwable $e) { return; }
+  if ($url === '' || !preg_match('~^https://n8n\.oblivion-hq\.duckdns\.org/webhook/[A-Za-z0-9_/-]+$~', $url) || !function_exists('curl_init')) return;
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 6, CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(['quelle' => 'portal', 'art' => 'ereignis', 'text' => mb_substr($text, 0, 3500)], JSON_UNESCAPED_UNICODE)]);
+  @curl_exec($ch); curl_close($ch);
+}

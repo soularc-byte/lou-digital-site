@@ -18,6 +18,7 @@
   document.querySelectorAll('[data-confirm]').forEach(function (b) {
     b.addEventListener('click', function (e) { if (!window.confirm(b.getAttribute('data-confirm'))) e.preventDefault(); });
   });
+  document.querySelectorAll('[data-autosubmit]').forEach(function (s) { s.addEventListener('change', function () { s.form.submit(); }); });
   /* Chat: ans Ende scrollen, Enter sendet (Shift+Enter = neue Zeile) */
   var chat = document.querySelector('.p-chat textarea');
   if (chat) { chat.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chat.form.requestSubmit ? chat.form.requestSubmit() : chat.form.submit(); } }); var ende = document.getElementById('ende'); if (ende && location.hash === '#ende') ende.scrollIntoView({ block: 'end' }); }

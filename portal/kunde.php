@@ -260,6 +260,7 @@ case 'empfehlen':
 /* ===================== Berichte ===================== */
 case 'berichte':
   $monat = preg_match('/^\d{4}-\d{2}$/', (string)($_GET['m'] ?? '')) ? (string)$_GET['m'] : date('Y-m');
+  if (isset($_GET['pdf'])) { $pdf = ld_bericht_pdf($me, $monat); header('Content-Type: application/pdf'); header('Content-Disposition: inline; filename="monatsbericht-' . $monat . '.pdf"'); header('Content-Length: ' . strlen($pdf)); echo $pdf; exit; }
   $von = $monat . '-01 00:00:00'; $bis = date('Y-m-t 23:59:59', strtotime($von));
   $pr = pd_row('SELECT COUNT(*) n, SUM(ok) o, AVG(ms) ms, MAX(ms) mx FROM pruefungen WHERE kunde_id = ? AND zeit BETWEEN ? AND ?', [$kid, $von, $bis]);
   $tk = pd_row("SELECT COUNT(*) n, SUM(CASE WHEN status = 'erledigt' THEN 1 ELSE 0 END) e, SUM(minuten) m FROM tickets WHERE kunde_id = ? AND art <> 'bot' AND angelegt BETWEEN ? AND ?", [$kid, $von, $bis]);
@@ -267,14 +268,14 @@ case 'berichte':
   $st = pd_all("SELECT ok, zeit FROM pruefungen WHERE kunde_id = ? AND ok = 0 AND zeit BETWEEN ? AND ? ORDER BY zeit", [$kid, $von, $bis]);
   $sel = ''; for ($i = 0; $i < 12; $i++) { $m = date('Y-m', strtotime("-$i months")); $sel .= '<option value="' . $m . '"' . ($m === $monat ? ' selected' : '') . '>' . date('m/Y', strtotime($m . '-01')) . '</option>'; }
   $b = $me['stufe'] !== '' && isset($BETREUUNG[$me['stufe']]) ? $BETREUUNG[$me['stufe']] : null;
-  $o = '<h1 class="p-h1">Berichte</h1><form method="get" class="p-inline"><label>Monat <select name="m" onchange="this.form.submit()">' . $sel . '</select></label></form>'
+  $o = '<h1 class="p-h1">Berichte</h1><form method="get" class="p-inline"><label>Monat <select name="m" data-autosubmit>' . $sel . '</select></label> <a class="btn btn--line btn--small" href="' . P_BASE . '/berichte?m=' . $monat . '&pdf=1" target="_blank" rel="noopener">Als PDF</a></form>'
      . '<div class="p-kpis"><div class="p-kpi"><b>' . ($pr && (int)$pr['n'] ? number_format((int)$pr['o'] / (int)$pr['n'] * 100, 2, ',', '.') . ' %' : '–') . '</b><span>Erreichbarkeit (' . (int)($pr['n'] ?? 0) . ' Prüfungen)</span></div>'
      . '<div class="p-kpi"><b>' . ($pr && $pr['ms'] ? (int)$pr['ms'] . ' ms' : '–') . '</b><span>Ø Antwortzeit' . ($pr && $pr['mx'] ? ', max. ' . (int)$pr['mx'] . ' ms' : '') . '</span></div>'
      . '<div class="p-kpi"><b>' . (int)($tk['n'] ?? 0) . '</b><span>Nachrichten, davon ' . (int)($tk['e'] ?? 0) . ' erledigt</span></div>'
      . '<div class="p-kpi"><b>' . (int)($tk['m'] ?? 0) . ' Min.</b><span>Änderungen abgerechnet' . ($b && $monat === date('Y-m') ? ' (von ' . $b['min'] . ')' : '') . '</span></div></div>'
      . '<section class="p-card"><h2>Störungen</h2>' . ($st ? '<ul class="p-list">' . implode('', array_map(function ($x) { return '<li>' . p_datum($x['zeit'], true) . ' – nicht erreichbar</li>'; }, $st)) . '</ul>' : p_empty('Keine Störung in diesem Monat.')) . '</section>'
      . '<section class="p-card"><h2>Automatik</h2>' . ($ws ? '<table class="p-table"><tr><th>Workflow</th><th>Status</th><th>Läufe</th><th>Fehler</th><th>Letzter Lauf</th></tr>' . implode('', array_map(function ($w) { return '<tr><td>' . h($w['name']) . '</td><td>' . h($w['status']) . '</td><td>' . (int)$w['laeufe'] . '</td><td>' . (int)$w['fehler'] . '</td><td>' . p_datum($w['letzter_lauf'], true) . '</td></tr>'; }, $ws)) . '</table>' : p_empty('Keine Workflows.')) . '</section>'
-     . '<p class="p-small p-muted">Der Monatsbericht als PDF liegt jeweils zum Monatsanfang unter „Dokumente“ (mit Betreuung).</p>';
+     . '<p class="p-small p-muted">Mit Betreuung liegt der Monatsbericht als PDF jeweils zum Monatsanfang unter „Dokumente“; hier können Sie ihn jederzeit für jeden Monat erzeugen.</p>';
   out('Berichte', $o);
 
 /* ===================== Einstellungen ===================== */

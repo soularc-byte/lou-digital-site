@@ -78,7 +78,7 @@ function p_mail(array $k, string $betreff, string $intro, array $rows = [], stri
   return ld_send((string)$k['email'], $betreff, html_entity_decode($text, ENT_QUOTES, 'UTF-8'), ld_mail_html('de', $betreff, $intro, $rows, $extra), LD_TO);
 }
 function p_btn_link(string $url, string $txt): string { return '<p style="margin:16px 0"><a href="' . h($url) . '" style="display:inline-block;background:#0b6e69;color:#ffffff;text-decoration:none;padding:11px 18px;border-radius:999px;font-weight:bold;font-size:15px">' . h($txt) . '</a></p><p style="margin:0;color:#4b585a;font-size:13px">Falls der Knopf nicht geht: ' . h($url) . '</p>'; }
-function p_adrian(string $betreff, string $text): void { ld_send(LD_TO, $betreff, $text . "\n\n" . LD_SITE . P_BASE . '/admin', null, ''); }
+function p_adrian(string $betreff, string $text): void { ld_send(LD_TO, $betreff, $text . "\n\n" . LD_SITE . P_BASE . '/admin', null, ''); ld_portal_hook('📬 ' . $betreff . "\n" . $text); }
 function p_form(string $csrf): string { return '<input type="hidden" name="_t" value="' . h($csrf) . '">'; }
 function p_status_badge(string $s, array $map): string { return '<span class="p-badge p-badge--' . h(preg_replace('/[^a-z]/', '', $s) ?: 'x') . '">' . h($map[$s] ?? $s) . '</span>'; }
 function p_empty(string $txt): string { return '<p class="p-empty">' . $txt . '</p>'; }
