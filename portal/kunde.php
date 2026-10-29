@@ -37,7 +37,7 @@ function k_bot_antwort(array $me, string $frage, array $verlauf): array {
     $r = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE); curl_close($ch);
     $j = is_string($r) ? json_decode($r, true) : null;
     $a = is_array($j) ? (string)($j['antwort'] ?? $j['output'] ?? $j['text'] ?? '') : (is_string($r) ? trim($r) : '');
-    if ($code === 200 && $a !== '') return ['text' => mb_substr($a, 0, 4000), 'quelle' => 'ki'];
+    if ($code === 200 && $a !== '') return ['text' => mb_substr(str_replace(['**', '__', '##'], '', $a), 0, 4000), 'quelle' => 'ki'];
   }
   $f = mb_strtolower($frage);
   $regeln = [
