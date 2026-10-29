@@ -858,3 +858,8 @@ html.js [data-reveal] { transition: opacity .8s var(--ease-out), transform 1s va
 .fl-knoten .fl-k { min-width: 0; }
 .fl-b { max-width: 100%; }
 .fl-b b, .fl-meta { overflow-wrap: anywhere; }
+/* Kontakt: Hinweis unter Feldern, Jahreszahlung */
+.field .hint { display: block; margin-top: 6px; font-size: 13.5px; line-height: 1.4; color: var(--ink-muted); }
+.sub-note { margin-top: 10px; font-size: 14px; color: var(--brand); font-weight: 600; }
+.sub-note[hidden] { display: none; }
+#f-code { font-family: var(--font-mono); letter-spacing: .06em; text-transform: uppercase; max-width: 260px; }

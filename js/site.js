@@ -19,7 +19,7 @@
     okText: 'You will receive a confirmation by email in a moment. I will reply personally, usually within 24 hours on working days.',
     reqSel: 'Request this selection', reqCheck: 'Request the free check', freeNote: 'The check is free and without obligation. Add building blocks for a price.',
     askOk: 'Thank you, your question has arrived.', askSend: 'Send question',
-    picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off', kombi: ' incl. 10% bundle discount',
+    picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off', kombi: ' incl. 10% bundle discount', perYear: '/year (two months free)', firstFree: ', first month free',
     fbOk: 'Thank you! Your feedback has arrived.', fbSend: 'Send', halt: 'Pause motion',
     qcRun: 'Checking', qcGo: 'Check now', qcPassed: 'passed', qcMissing: 'missing',
     qcErr: { url: 'Please enter an address like your-company.com.', dns: 'This address doesn’t seem to exist.', unreachable: 'The website did not respond. Is the address correct?', rate: 'Too many checks in a short time. Please try again later.', server: 'The check is not available right now. Please send an inquiry instead.' },
@@ -34,7 +34,7 @@
     okText: 'Sie bekommen gleich eine Bestätigung per E-Mail. Ich antworte Ihnen persönlich, in der Regel innerhalb von 24 Stunden an Werktagen.',
     reqSel: 'Zusammenstellung anfragen', reqCheck: 'Kostenlosen Check anfordern', freeNote: 'Der Check ist kostenlos und unverbindlich. Für einen Preis fügen Sie Bausteine hinzu.',
     askOk: 'Danke, Ihre Frage ist angekommen.', askSend: 'Frage senden',
-    picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig', kombi: ' inkl. 10 % Kombi-Rabatt',
+    picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig', kombi: ' inkl. 10 % Kombi-Rabatt', perYear: '/Jahr (zwei Monate geschenkt)', firstFree: ', erster Monat geschenkt',
     fbOk: 'Danke! Ihr Feedback ist angekommen.', fbSend: 'Senden', halt: 'Bewegung anhalten',
     qcRun: 'Wird geprüft', qcGo: 'Jetzt prüfen', qcPassed: 'bestanden', qcMissing: 'fehlt',
     qcErr: { url: 'Bitte geben Sie eine Adresse wie ihre-firma.de ein.', dns: 'Diese Adresse scheint es nicht zu geben.', unreachable: 'Die Website hat nicht geantwortet. Stimmt die Adresse?', rate: 'Zu viele Checks in kurzer Zeit. Bitte versuchen Sie es später noch einmal.', server: 'Der Check ist gerade nicht verfügbar. Senden Sie mir gern eine Anfrage.' },
@@ -400,7 +400,7 @@
   /* ---------- Pakete auswählen (Tabelle) mit Leiste unten ---------- */
   var bar = $('pickbar');
   if (bar) {
-    var picks = {}, tier = null, tierPrice = { S: 29, M: 49, L: 79 };
+    var picks = {}, tier = null, tierPrice = { S: 29, M: 49, L: 79 }, jahr = false;
     var render = function () {
       var keys = Object.keys(picks), n = keys.length + (tier ? 1 : 0), once = 0;
       keys.forEach(function (k) { once += picks[k]; });
@@ -413,10 +413,16 @@
       /* Version 29: Kombi-Rabatt – Website und Anfrage-Automatik zusammen 10 % günstiger */
       var kombi = picks.hasOwnProperty('website') && picks.hasOwnProperty('automatik');
       var rabatt = kombi ? Math.round((picks.website + picks.automatik) * 0.1) : 0;
-      var parts = []; if (once || !tier) parts.push(T.eur(once - rabatt) + T.oneOff + (kombi ? T.kombi : '')); if (tier) parts.push(T.eur(tierPrice[tier]) + T.perMonth);
+      var parts = []; if (once || !tier) parts.push(T.eur(once - rabatt) + T.oneOff + (kombi ? T.kombi : ''));
+      if (tier) parts.push(jahr ? T.eur(tierPrice[tier] * 10) + T.perYear : T.eur(tierPrice[tier]) + T.perMonth + (kombi ? T.firstFree : ''));
       $('pb-sum').textContent = parts.join(' · ');
       var q = keys.slice(); if (tier) q.push('betreuung');
-      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : '') + (kombi ? '&kombi=1' : ''));
+      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : '') + (kombi ? '&kombi=1' : '') + (tier && jahr ? '&zahlung=jahr' : ''));
+      document.querySelectorAll('[data-bundle]').forEach(function (b) {
+        var want = (b.getAttribute('data-bundle') || '').split(',').filter(Boolean), wt = b.getAttribute('data-bundle-tier') || '', wj = b.getAttribute('data-bundle-jahr') === '1';
+        var on = want.every(function (k) { return picks.hasOwnProperty(k); }) && (!wt || tier === wt) && (!wj || jahr) && !!(want.length || wt);
+        b.setAttribute('aria-pressed', String(on));
+      });
       bar.classList.toggle('show', n > 0); bar.setAttribute('aria-hidden', String(n === 0));
       [].forEach.call(bar.querySelectorAll('a,button'), function (x) { x.tabIndex = n > 0 ? 0 : -1; });
       document.body.classList.toggle('has-pickbar', n > 0);
@@ -429,7 +435,21 @@
         render();
       });
     });
-    $('pb-clear').addEventListener('click', function () { picks = {}; tier = null; render(); });
+    /* Version 29: fertige Pakete per Klick – wählt alle Bausteine, Betreuungsstufe und ggf. Jahreszahlung */
+    var priceOf = function (k) { var b = document.querySelector('[data-pick="' + k + '"]'); return b ? parseInt(b.getAttribute('data-once') || '0', 10) : 0; };
+    document.querySelectorAll('[data-bundle]').forEach(function (b) {
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', function () {
+        var want = (b.getAttribute('data-bundle') || '').split(',').filter(Boolean), wt = b.getAttribute('data-bundle-tier') || '', wj = b.getAttribute('data-bundle-jahr') === '1';
+        var already = b.getAttribute('aria-pressed') === 'true';
+        if (already) { want.forEach(function (k) { delete picks[k]; }); if (wt) { tier = null; jahr = false; } }
+        else { want.forEach(function (k) { picks[k] = priceOf(k); }); if (wt) { tier = wt; jahr = wj; } }
+        render();
+        if (!already) { var pb = $('pickbar'); if (pb) { pb.classList.add('pulse'); setTimeout(function () { pb.classList.remove('pulse'); }, 900); } }
+      });
+    });
+    document.querySelectorAll('[data-pick="betreuung"]').forEach(function (b) { b.addEventListener('click', function () { if (!tier) jahr = false; }); });
+    $('pb-clear').addEventListener('click', function () { picks = {}; tier = null; jahr = false; render(); });
     render();
   }
 
@@ -443,6 +463,8 @@
     if (q.get('anliegen')) want.push(q.get('anliegen'));
     want.forEach(function (v) { v = (v || '').replace(/[^a-z]/g, ''); var el = v && form.querySelector('input[name="pakete[]"][value="' + v + '"]'); if (el) el.checked = true; });
     if (q.get('kombi') === '1') { var kb = document.createElement('input'); kb.type = 'hidden'; kb.name = 'kombi'; kb.value = '1'; form.appendChild(kb); }
+    if (q.get('zahlung') === 'jahr') { var zj = document.createElement('input'); zj.type = 'hidden'; zj.name = 'zahlung'; zj.value = 'jahr'; form.appendChild(zj); var zl = $('tier-note'); if (zl) zl.hidden = false; }
+    if (q.get('code')) { var cf = $('f-code'); if (cf) cf.value = q.get('code').replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20); }
     if (/^[SML]$/.test(q.get('stufe') || '')) { var tr = form.querySelector('input[name="betreuung_stufe"][value="' + q.get('stufe') + '"]'); if (tr) tr.checked = true; }
     if (q.get('url')) $('f-url').value = q.get('url').slice(0, 200);
     if (q.get('anliegen') === 'individuell' && (q.get('b') || q.get('c'))) {
