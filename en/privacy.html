@@ -27,7 +27,7 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=504f2147">
+<link rel="stylesheet" href="/css/site.css?v=08d017f1">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);(function(){try{var d=document,S=localStorage,ist=d.documentElement.lang==='en'?'en':'de',w=S.getItem('lou-sprache'),q=/[?&]lang=(de|en)(&|$)/.exec(location.search);if(q){w=q[1];S.setItem('lou-sprache',w)}d.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[hreflang]'),h=a&&a.getAttribute('hreflang');if(h==='de'||h==='en')try{S.setItem('lou-sprache',h)}catch(x){}},true);if(w!=='de'&&w!=='en'){if(/bot|crawl|spider|slurp|google|bing|yandex|baidu|duckduck|lighthouse|pagespeed|headless|preview|facebookexternalhit|embedly|pinterest|whatsapp|telegram|discord|skype|slack|gpt|claude|anthropic|perplexity|ccbot|bytespider|applebot|amazonbot|semrush|ahrefs|mj12|petal|seznam|ia_archiver/i.test(navigator.userAgent||''))return;w=(function(){var L=[].concat(navigator.languages||[],navigator.language||[]);try{L.push(Intl.DateTimeFormat().resolvedOptions().locale||'')}catch(x){}for(var i=0;i<L.length;i++)if(/^de\b/i.test(String(L[i])))return'de';return'en'})()}if(w!==ist&&d.querySelector('link[rel=canonical]')){var a=d.querySelector('link[rel=alternate][hreflang='+w+']');if(a&&a.href&&a.href.split(/[?#]/)[0]!==location.href.split(/[?#]/)[0]){var p=location.search.slice(1).split('&').filter(function(x){return x&&!/^lang=/.test(x)}).join('&');location.replace(a.href+(p?'?'+p:'')+location.hash)}}}catch(e){}})();</script>
 </head>
 <body>
@@ -61,6 +61,8 @@
 <p>Inquiries and messages you send to Lou Digital via the form, by email or via a messenger are additionally stored in a customer management system on my own server (Oracle, data centre in Frankfurt, Germany). Only I have access, protected by password and a second factor.</p>
 <p>So that inquiries are answered quickly, a digital assistant evaluates incoming messages. Voice messages are converted into text on my own server, and the text is sent to the AI service Claude by Anthropic PBC (USA), which summarises it, translates it and checks which details are missing. Anthropic processes the data on my behalf and, according to its own statements, does not use it for training. The transfer to the USA is based on the EU-US Data Privacy Framework. Commitments, appointments and prices are always confirmed by me personally.</p>
 <p>For new inquiries I receive an internal notification via the messenger Telegram (Telegram FZ-LLC, Dubai) with the name, a short summary and the text of the message. The legal basis is Art. 6 (1) (b) GDPR (inquiry and contract) and (f) GDPR (fast handling). If you do not want the assistant to evaluate your messages, just let me know. I will then handle your messages personally only. Inquiries without a contract are deleted after six months, customer data three years after the last contact, invoice data after eight years.</p>
+<h2>4b. Customer portal</h2>
+<p>Clients with a contract receive access to the customer portal at lou-digital.de/portal, where they see the status of their project, checks of their website (availability, response time, certificate), their maintenance plan, workflows, documents and messages. Stored are email address, name, company, phone, website, a password hash, optionally a key for the second factor, messages and a log of logins. The portal only sets a strictly necessary session cookie (ldp, until logout, at most 30 days) and a short-lived notice cookie; no consent is required for these (§ 25 (2) TDDDG). The help assistant in the portal answers questions automatically; the question and project details are sent to the AI service Claude (Anthropic PBC, USA, see section 4a). Legal basis is Art. 6 (1) (b) GDPR. Data is deleted three years after the contract ends; clients can download an export of their data in the portal at any time.</p>
 <h2>5. Website check</h2>
 <p>For the website check, my server visits the public website you name and checks it on 100 points. To do so it loads the homepage, the contact page, some subpages and linked pages of the same website, files such as robots.txt, security.txt and the sitemap, reads the certificate and queries public DNS records of the domain, for example for email. It only sees what any visitor can see and does not fill in any forms.</p>
 <p>With the instant check, the result is only displayed in your browser and not stored. To prevent abuse, the server stores a non-reversible checksum of your IP address for at most one hour to limit the number of checks (Art. 6 (1) (f) GDPR).</p>
@@ -95,6 +97,7 @@
         <li><a href="/en/about">About me</a></li>
         <li><a href="/en/faq">FAQ</a></li>
         <li><a href="/en/contact">Send an inquiry</a></li>
+        <li><a href="/portal">Customer portal</a></li>
       </ul></div>
       <div data-reveal style="--d:.15s"><h2>Legal</h2><ul>
         <li><a href="/en/imprint">Legal notice</a></li>
@@ -142,6 +145,6 @@
   </form>
 </div>
 <script src="/js/lenis.min.js?v=79e3a064" defer></script>
-<script src="/js/site.js?v=aaf24d7c" defer></script>
+<script src="/js/site.js?v=0aef383d" defer></script>
 </body>
 </html>

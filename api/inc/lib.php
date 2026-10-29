@@ -63,6 +63,7 @@ function ld_smtp_cfg(): ?array {
 }
 function ld_send(string $to, string $subject, string $text, ?string $html = null, string $replyTo = ''): bool {
   if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+  if (($dump = getenv('LD_MAILDUMP')) && is_string($dump) && $dump !== '') { @file_put_contents($dump, "TO: $to\nSUBJECT: $subject\n$text\n-----\n", FILE_APPEND); return true; }   // nur für lokale Tests
   $h = [
     'From: ' . ld_enc(LD_FROM_NAME) . ' <' . LD_FROM . '>',
     'Date: ' . date('r'),

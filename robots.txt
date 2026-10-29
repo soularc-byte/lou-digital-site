@@ -21,11 +21,13 @@ Allow: /
 Disallow: /api/
 Disallow: /statistik/
 Disallow: /buero/
+Disallow: /portal
 
 User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /statistik/
 Disallow: /buero/
+Disallow: /portal
 
 Sitemap: https://lou-digital.de/sitemap.xml

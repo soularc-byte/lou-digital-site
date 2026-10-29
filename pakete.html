@@ -29,7 +29,7 @@
 <link rel="preload" href="/img/fig-clip.webp?v=ed7c0325" as="image" type="image/webp" fetchpriority="high">
 <link rel="preload" href="/img/fig-mail.webp?v=8fc74828" as="image" type="image/webp" fetchpriority="high">
 <link rel="preload" href="/img/fig-web.webp?v=7ac4f9f6" as="image" type="image/webp" fetchpriority="high">
-<link rel="stylesheet" href="/css/site.css?v=504f2147">
+<link rel="stylesheet" href="/css/site.css?v=08d017f1">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);(function(){try{var d=document,S=localStorage,ist=d.documentElement.lang==='en'?'en':'de',w=S.getItem('lou-sprache'),q=/[?&]lang=(de|en)(&|$)/.exec(location.search);if(q){w=q[1];S.setItem('lou-sprache',w)}d.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[hreflang]'),h=a&&a.getAttribute('hreflang');if(h==='de'||h==='en')try{S.setItem('lou-sprache',h)}catch(x){}},true);if(w!=='de'&&w!=='en'){if(/bot|crawl|spider|slurp|google|bing|yandex|baidu|duckduck|lighthouse|pagespeed|headless|preview|facebookexternalhit|embedly|pinterest|whatsapp|telegram|discord|skype|slack|gpt|claude|anthropic|perplexity|ccbot|bytespider|applebot|amazonbot|semrush|ahrefs|mj12|petal|seznam|ia_archiver/i.test(navigator.userAgent||''))return;w=(function(){var L=[].concat(navigator.languages||[],navigator.language||[]);try{L.push(Intl.DateTimeFormat().resolvedOptions().locale||'')}catch(x){}for(var i=0;i<L.length;i++)if(/^de\b/i.test(String(L[i])))return'de';return'en'})()}if(w!==ist&&d.querySelector('link[rel=canonical]')){var a=d.querySelector('link[rel=alternate][hreflang='+w+']');if(a&&a.href&&a.href.split(/[?#]/)[0]!==location.href.split(/[?#]/)[0]){var p=location.search.slice(1).split('&').filter(function(x){return x&&!/^lang=/.test(x)}).join('&');location.replace(a.href+(p?'?'+p:'')+location.hash)}}}catch(e){}})();</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Start", "item": "https://lou-digital.de/"}, {"@type": "ListItem", "position": 2, "name": "Pakete und Preise", "item": "https://lou-digital.de/pakete"}]}</script>
 <link rel="stylesheet" href="/css/angebote.css?v=2e11e8fc">
@@ -62,7 +62,7 @@
     <button class="rab rab--btn" type="button" data-bundle="" data-bundle-tier="M" data-bundle-jahr="1" data-track="Paket: Jahresbetreuung" data-reveal style="--d:.15s"><span class="rab-tag">Jahrespaket</span><h3>Betreuung M für ein Jahr</h3><p class="rab-p"><b>490 €</b> im Jahr statt 588 € (zwei Monate geschenkt)</p><p>Für bestehende oder neue Websites: Überwachung, Sicherung, Updates, Monatsbericht und 30 Minuten Änderungen im Monat. S für 290 €, L für 790 € im Jahr geht genauso.</p><span class="rab-go">Paket auswählen</span></button>
   </div>
   <div class="rab-grid rab-grid--info">
-    <article class="rab rab--info" data-reveal style="--d:.2s"><span class="rab-tag">Pilotpreis</span><h3>Die ersten fünf Kunden</h3><p>Website 390 statt 790 €, Automatik 290 statt 590 €, Umfrage 190 statt 290 €. Dafür erlauben Sie mir, Logo, Ergebnis und eine ehrliche Bewertung als Referenz zu zeigen. Pilotpreis und Kombi-Rabatt gelten zusammen.</p></article>
+    <article class="rab rab--info pilot-only" data-reveal style="--d:.2s"><span class="rab-tag">Pilotpreis</span><h3>Die ersten fünf Kunden</h3><p>Website 390 statt 790 €, Automatik 290 statt 590 €, Umfrage 190 statt 290 €. Dafür erlauben Sie mir, Logo, Ergebnis und eine ehrliche Bewertung als Referenz zu zeigen. Pilotpreis und Kombi-Rabatt gelten zusammen.</p></article>
     <article class="rab rab--info" data-reveal style="--d:.25s"><span class="rab-tag">Empfehlung</span><h3>Kunden werben Kunden</h3><p>Jeder Kunde bekommt nach dem ersten Auftrag einen Empfehlungscode (LD-…). Wer ihn bei der Anfrage angibt, bekommt <b>10 %</b> auf das erste Paket, und Sie erhalten <b>50 € Gutschrift</b> auf Betreuung oder den nächsten Auftrag. Rabattcodes aus Aktionen tragen Sie im selben Feld ein.</p></article>
     <article class="rab rab--info" data-reveal style="--d:.3s"><span class="rab-tag">Zusage</span><h3>Antwort in 24 Stunden</h3><p>Auf jede Anfrage antworte ich persönlich innerhalb von 24 Stunden an Werktagen. Dauert es länger, bekommen Sie <b>10 %</b> auf Ihr erstes Paket, ohne Nachfrage.</p></article>
   </div>
@@ -136,6 +136,7 @@
         <li><a href="/ueber-mich">Über mich</a></li>
         <li><a href="/fragen">Häufige Fragen</a></li>
         <li><a href="/kontakt">Anfrage senden</a></li>
+        <li><a href="/portal">Kundenportal</a></li>
       </ul></div>
       <div data-reveal style="--d:.15s"><h2>Rechtliches</h2><ul>
         <li><a href="/impressum">Impressum</a></li>
@@ -183,6 +184,6 @@
   </form>
 </div>
 <script src="/js/lenis.min.js?v=79e3a064" defer></script>
-<script src="/js/site.js?v=aaf24d7c" defer></script>
+<script src="/js/site.js?v=0aef383d" defer></script>
 </body>
 </html>

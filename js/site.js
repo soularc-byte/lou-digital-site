@@ -20,6 +20,10 @@
     reqSel: 'Request this selection', reqCheck: 'Request the free check', freeNote: 'The check is free and without obligation. Add building blocks for a price.',
     askOk: 'Thank you, your question has arrived.', askSend: 'Send question',
     picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off', kombi: ' incl. 10% bundle discount', perYear: '/year (two months free)', firstFree: ', first month free',
+    pilotOn: function (n, left) { return 'Code PILOT active: you save ' + n + ' vs. the regular price' + (left ? ' (' + left + ' of 5 pilot slots left)' : ''); }, pilotOff: 'Pilot phase finished, regular prices apply.',
+    codeOk: function (c, p, n) { return 'Code ' + c + ' (' + p + '%): −' + n; }, codeOkNoSum: function (c, p) { return 'Code ' + c + ' (' + p + '%) applies to your first package.'; },
+    codeBad: { unbekannt: 'This code is unknown.', unbekannt_empfehlung: 'This referral code will be checked before the quote.', abgelaufen: 'This code has expired.', aufgebraucht: 'This code has been used up.', inaktiv: 'This code is no longer active.', pruefen: 'Code will be checked before the quote.' },
+    codeAdd: 'Enter a code', codeGo: 'Apply', codePh: 'LD-ABCD', codeDel: 'remove',
     fbOk: 'Thank you! Your feedback has arrived.', fbSend: 'Send', halt: 'Pause motion',
     qcRun: 'Checking', qcGo: 'Check now', qcPassed: 'passed', qcMissing: 'missing',
     qcErr: { url: 'Please enter an address like your-company.com.', dns: 'This address doesn’t seem to exist.', unreachable: 'The website did not respond. Is the address correct?', rate: 'Too many checks in a short time. Please try again later.', server: 'The check is not available right now. Please send an inquiry instead.' },
@@ -35,6 +39,10 @@
     reqSel: 'Zusammenstellung anfragen', reqCheck: 'Kostenlosen Check anfordern', freeNote: 'Der Check ist kostenlos und unverbindlich. Für einen Preis fügen Sie Bausteine hinzu.',
     askOk: 'Danke, Ihre Frage ist angekommen.', askSend: 'Frage senden',
     picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig', kombi: ' inkl. 10 % Kombi-Rabatt', perYear: '/Jahr (zwei Monate geschenkt)', firstFree: ', erster Monat geschenkt',
+    pilotOn: function (n, left) { return 'Code PILOT aktiv: Sie sparen ' + n + ' gegenüber dem Normalpreis' + (left ? ' (noch ' + left + ' von 5 Pilotplätzen)' : ''); }, pilotOff: 'Pilotphase beendet, es gelten die Normalpreise.',
+    codeOk: function (c, p, n) { return 'Code ' + c + ' (' + p + ' %): −' + n; }, codeOkNoSum: function (c, p) { return 'Code ' + c + ' (' + p + ' %) gilt für Ihr erstes Paket.'; },
+    codeBad: { unbekannt: 'Dieser Code ist unbekannt.', unbekannt_empfehlung: 'Dieser Empfehlungscode wird vor dem Angebot geprüft.', abgelaufen: 'Dieser Code ist abgelaufen.', aufgebraucht: 'Dieser Code ist aufgebraucht.', inaktiv: 'Dieser Code ist nicht mehr aktiv.', pruefen: 'Der Code wird vor dem Angebot geprüft.' },
+    codeAdd: 'Code eingeben', codeGo: 'Einlösen', codePh: 'LD-ABCD', codeDel: 'entfernen',
     fbOk: 'Danke! Ihr Feedback ist angekommen.', fbSend: 'Senden', halt: 'Bewegung anhalten',
     qcRun: 'Wird geprüft', qcGo: 'Jetzt prüfen', qcPassed: 'bestanden', qcMissing: 'fehlt',
     qcErr: { url: 'Bitte geben Sie eine Adresse wie ihre-firma.de ein.', dns: 'Diese Adresse scheint es nicht zu geben.', unreachable: 'Die Website hat nicht geantwortet. Stimmt die Adresse?', rate: 'Zu viele Checks in kurzer Zeit. Bitte versuchen Sie es später noch einmal.', server: 'Der Check ist gerade nicht verfügbar. Senden Sie mir gern eine Anfrage.' },
@@ -397,10 +405,63 @@
     });
   }
 
+  /* ---------- Version 30: Pilotstand und Codes live vom Server (/api/code.php) ---------- */
+  var NORMAL = { website: 790, automatik: 590, umfrage: 290 }, PILOT = { website: 390, automatik: 290, umfrage: 190 };
+  var pilotInfo = { pilot: true, frei: 5 };
+  var codeInfo = null; /* { code, gueltig, art, prozent, text, grund } */
+  var codeApi = function (code, pakete, cb) {
+    if (!window.fetch) { cb(null); return; }
+    fetch('/api/code.php?code=' + encodeURIComponent(code || '') + '&pakete=' + encodeURIComponent((pakete || []).join(',')), { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(cb).catch(function () { cb(null); });
+  };
+  var storedCode = function () { var c = ''; try { c = sessionStorage.getItem('ld-code') || ''; } catch (e) {} var q = new URLSearchParams(location.search).get('code'); if (q) { c = q; } return (c || '').replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20); };
+  var keepCode = function (c) { try { if (c) sessionStorage.setItem('ld-code', c); else sessionStorage.removeItem('ld-code'); } catch (e) {} };
+  /* Pilotphase vorbei: Normalpreise in Tabelle und Karten einsetzen */
+  var applyPilot = function (d) {
+    if (!d) return;
+    pilotInfo = { pilot: !!d.pilot, frei: d.pilot_frei || 0 };
+    document.body.classList.toggle('pilot-aus', !pilotInfo.pilot);
+    if (pilotInfo.pilot) return;
+    document.querySelectorAll('[data-pick][data-once]').forEach(function (b) {
+      var k = b.getAttribute('data-pick'); if (!NORMAL[k]) return;
+      b.setAttribute('data-once', String(NORMAL[k]));
+      var row = b.closest('[data-row]'); var cost = row && row.querySelector('.cost');
+      if (cost) { cost.innerHTML = ''; cost.textContent = T.eur(NORMAL[k]); }
+    });
+  };
+
   /* ---------- Pakete auswählen (Tabelle) mit Leiste unten ---------- */
   var bar = $('pickbar');
   if (bar) {
     var picks = {}, tier = null, tierPrice = { S: 29, M: 49, L: 79 }, jahr = false;
+    /* Version 30: Zeile für Pilotpreis und Code in der Leiste */
+    var pbCode = document.createElement('div'); pbCode.className = 'pb-code'; pbCode.id = 'pb-code'; pbCode.hidden = true;
+    var pbTxt = bar.querySelector('.pb-txt'); if (pbTxt) pbTxt.appendChild(pbCode);
+    var codeVal = storedCode();
+    var renderCode = function () {
+      var keys = Object.keys(picks).filter(function (k) { return NORMAL[k]; });
+      var html = '';
+      if (keys.length && pilotInfo.pilot) { var sp = 0; keys.forEach(function (k) { sp += NORMAL[k] - PILOT[k]; }); html += '<span class="pb-tag">' + T.pilotOn(T.eur(sp), pilotInfo.frei) + '</span>'; }
+      if (codeInfo && codeInfo.code) {
+        if (codeInfo.gueltig && codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--ok">' + (codeInfo.ersparnis ? T.codeOk(codeInfo.code, codeInfo.prozent, T.eur(codeInfo.ersparnis)) : T.codeOkNoSum(codeInfo.code, codeInfo.prozent)) + '</span>';
+        else if (codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--warn">' + codeInfo.code + ': ' + (T.codeBad[codeInfo.grund] || T.codeBad.unbekannt) + '</span>';
+        html += ' <button type="button" class="pb-link" id="pb-code-del">' + T.codeDel + '</button>';
+      } else {
+        html += ' <button type="button" class="pb-link" id="pb-code-add">' + T.codeAdd + '</button>';
+      }
+      pbCode.innerHTML = html; pbCode.hidden = !(keys.length || codeInfo);
+      var add = $('pb-code-add'), del = $('pb-code-del');
+      if (add) add.addEventListener('click', function () {
+        pbCode.innerHTML = '<form class="pb-form" id="pb-code-form"><input id="pb-code-in" type="text" maxlength="20" autocapitalize="characters" spellcheck="false" placeholder="' + T.codePh + '" aria-label="' + T.codeAdd + '"><button type="submit" class="pb-mini">' + T.codeGo + '</button></form>';
+        var inp = $('pb-code-in'); inp.focus();
+        $('pb-code-form').addEventListener('submit', function (e) { e.preventDefault(); var c = inp.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20); if (!c) { renderCode(); return; } codeVal = c; keepCode(c); checkCode(); });
+      });
+      if (del) del.addEventListener('click', function () { codeVal = ''; codeInfo = null; keepCode(''); render(); });
+    };
+    var checkCode = function () {
+      var keys = Object.keys(picks).filter(function (k) { return NORMAL[k]; });
+      codeApi(codeVal, keys, function (d) { applyPilot(d); codeInfo = d && d.code ? d.code : (codeVal ? { code: codeVal, gueltig: false, grund: 'pruefen', art: '' } : null); render(); });
+    };
     var render = function () {
       var keys = Object.keys(picks), n = keys.length + (tier ? 1 : 0), once = 0;
       keys.forEach(function (k) { once += picks[k]; });
@@ -413,11 +474,13 @@
       /* Version 29: Kombi-Rabatt – Website und Anfrage-Automatik zusammen 10 % günstiger */
       var kombi = picks.hasOwnProperty('website') && picks.hasOwnProperty('automatik');
       var rabatt = kombi ? Math.round((picks.website + picks.automatik) * 0.1) : 0;
-      var parts = []; if (once || !tier) parts.push(T.eur(once - rabatt) + T.oneOff + (kombi ? T.kombi : ''));
+      var codeAb = (codeInfo && codeInfo.gueltig && codeInfo.art !== 'pilot' && codeInfo.ersparnis) ? codeInfo.ersparnis : 0;
+      var parts = []; if (once || !tier) parts.push(T.eur(Math.max(0, once - rabatt - codeAb)) + T.oneOff + (kombi ? T.kombi : ''));
       if (tier) parts.push(jahr ? T.eur(tierPrice[tier] * 10) + T.perYear : T.eur(tierPrice[tier]) + T.perMonth + (kombi ? T.firstFree : ''));
       $('pb-sum').textContent = parts.join(' · ');
       var q = keys.slice(); if (tier) q.push('betreuung');
-      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : '') + (kombi ? '&kombi=1' : '') + (tier && jahr ? '&zahlung=jahr' : ''));
+      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : '') + (kombi ? '&kombi=1' : '') + (tier && jahr ? '&zahlung=jahr' : '') + (codeVal ? '&code=' + encodeURIComponent(codeVal) : ''));
+      if (typeof renderCode === 'function') renderCode();
       document.querySelectorAll('[data-bundle]').forEach(function (b) {
         var want = (b.getAttribute('data-bundle') || '').split(',').filter(Boolean), wt = b.getAttribute('data-bundle-tier') || '', wj = b.getAttribute('data-bundle-jahr') === '1';
         var on = want.every(function (k) { return picks.hasOwnProperty(k); }) && (!wt || tier === wt) && (!wj || jahr) && !!(want.length || wt);
@@ -451,6 +514,10 @@
     document.querySelectorAll('[data-pick="betreuung"]').forEach(function (b) { b.addEventListener('click', function () { if (!tier) jahr = false; }); });
     $('pb-clear').addEventListener('click', function () { picks = {}; tier = null; jahr = false; render(); });
     render();
+    /* Pilotstand laden; bei Codes auch die Ersparnis neu rechnen, wenn sich die Auswahl ändert */
+    checkCode();
+    var ct; bar.addEventListener('ld-picks', function () {});
+    document.querySelectorAll('[data-pick],[data-bundle]').forEach(function (b) { b.addEventListener('click', function () { if (codeVal) { clearTimeout(ct); ct = setTimeout(checkCode, 250); } }); });
   }
 
   /* ---------- Anfrageformular mit Auswahl und Terminwunsch ---------- */
@@ -464,7 +531,25 @@
     want.forEach(function (v) { v = (v || '').replace(/[^a-z]/g, ''); var el = v && form.querySelector('input[name="pakete[]"][value="' + v + '"]'); if (el) el.checked = true; });
     if (q.get('kombi') === '1') { var kb = document.createElement('input'); kb.type = 'hidden'; kb.name = 'kombi'; kb.value = '1'; form.appendChild(kb); }
     if (q.get('zahlung') === 'jahr') { var zj = document.createElement('input'); zj.type = 'hidden'; zj.name = 'zahlung'; zj.value = 'jahr'; form.appendChild(zj); var zl = $('tier-note'); if (zl) zl.hidden = false; }
-    if (q.get('code')) { var cf = $('f-code'); if (cf) cf.value = q.get('code').replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20); }
+    var cf = $('f-code');
+    if (cf) {
+      var c0 = storedCode(); if (c0) cf.value = c0;
+      var hint = cf.parentNode.querySelector('.hint'), hint0 = hint ? hint.textContent : '';
+      var pruefe = function () {
+        var c = cf.value.replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20); cf.value = c; keepCode(c);
+        if (!c) { if (hint) { hint.textContent = hint0; hint.className = 'hint'; } return; }
+        var sel = []; chips.forEach(function (x) { if (x.checked && NORMAL[x.value]) sel.push(x.value); });
+        codeApi(c, sel, function (d) {
+          if (!hint) return; applyPilot(d);
+          var r = d && d.code;
+          if (r && r.gueltig && r.art === 'pilot') { hint.textContent = T.pilotOn(T.eur(r.ersparnis), d.pilot_frei); hint.className = 'hint hint--ok'; }
+          else if (r && r.gueltig) { hint.textContent = (r.ersparnis ? T.codeOk(r.code, r.prozent, T.eur(r.ersparnis)) : T.codeOkNoSum(r.code, r.prozent)) + (r.text ? ' – ' + r.text : ''); hint.className = 'hint hint--ok'; }
+          else { hint.textContent = T.codeBad[(r && r.grund) || 'pruefen'] || T.codeBad.unbekannt; hint.className = 'hint hint--warn'; }
+        });
+      };
+      cf.addEventListener('change', pruefe); if (cf.value) pruefe();
+      chips.forEach(function (x) { x.addEventListener('change', function () { if (cf.value) pruefe(); }); });
+    }
     if (/^[SML]$/.test(q.get('stufe') || '')) { var tr = form.querySelector('input[name="betreuung_stufe"][value="' + q.get('stufe') + '"]'); if (tr) tr.checked = true; }
     if (q.get('url')) $('f-url').value = q.get('url').slice(0, 200);
     if (q.get('anliegen') === 'individuell' && (q.get('b') || q.get('c'))) {

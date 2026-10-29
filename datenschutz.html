@@ -27,7 +27,7 @@
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/site.css?v=504f2147">
+<link rel="stylesheet" href="/css/site.css?v=08d017f1">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);(function(){try{var d=document,S=localStorage,ist=d.documentElement.lang==='en'?'en':'de',w=S.getItem('lou-sprache'),q=/[?&]lang=(de|en)(&|$)/.exec(location.search);if(q){w=q[1];S.setItem('lou-sprache',w)}d.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[hreflang]'),h=a&&a.getAttribute('hreflang');if(h==='de'||h==='en')try{S.setItem('lou-sprache',h)}catch(x){}},true);if(w!=='de'&&w!=='en'){if(/bot|crawl|spider|slurp|google|bing|yandex|baidu|duckduck|lighthouse|pagespeed|headless|preview|facebookexternalhit|embedly|pinterest|whatsapp|telegram|discord|skype|slack|gpt|claude|anthropic|perplexity|ccbot|bytespider|applebot|amazonbot|semrush|ahrefs|mj12|petal|seznam|ia_archiver/i.test(navigator.userAgent||''))return;w=(function(){var L=[].concat(navigator.languages||[],navigator.language||[]);try{L.push(Intl.DateTimeFormat().resolvedOptions().locale||'')}catch(x){}for(var i=0;i<L.length;i++)if(/^de\b/i.test(String(L[i])))return'de';return'en'})()}if(w!==ist&&d.querySelector('link[rel=canonical]')){var a=d.querySelector('link[rel=alternate][hreflang='+w+']');if(a&&a.href&&a.href.split(/[?#]/)[0]!==location.href.split(/[?#]/)[0]){var p=location.search.slice(1).split('&').filter(function(x){return x&&!/^lang=/.test(x)}).join('&');location.replace(a.href+(p?'?'+p:'')+location.hash)}}}catch(e){}})();</script>
 </head>
 <body>
@@ -60,6 +60,8 @@
 <p>Anfragen und Nachrichten, die Sie Lou Digital über das Formular, per E-Mail oder über einen Messenger schicken, speichere ich zusätzlich in einer Kundenverwaltung auf einem eigenen Server (Oracle, Rechenzentrum Frankfurt). Zugang habe nur ich, gesichert mit Passwort und zweitem Faktor.</p>
 <p>Damit Anfragen schnell beantwortet werden, wertet ein digitaler Assistent eingehende Nachrichten aus. Sprachnachrichten wandelt der eigene Server in Text um. Der Text wird an den KI-Dienst Claude der Anthropic PBC (USA) übermittelt, der ihn zusammenfasst, übersetzt und prüft, welche Angaben fehlen. Anthropic verarbeitet die Daten in meinem Auftrag und nutzt sie nach eigenen Angaben nicht zum Training. Die Übermittlung in die USA stützt sich auf das EU-US Data Privacy Framework. Zusagen, Termine und Preise bestätige immer ich persönlich.</p>
 <p>Über neue Anfragen erhalte ich einen internen Hinweis über den Messenger Telegram (Telegram FZ-LLC, Dubai) mit Name, Kurzfassung und Text der Nachricht. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Anfrage und Vertrag) und lit. f DSGVO (schnelle Bearbeitung). Wenn Sie keine Auswertung durch den Assistenten möchten, sagen Sie es kurz. Dann bearbeite ich Ihre Nachrichten nur persönlich. Anfragen ohne Vertrag lösche ich nach sechs Monaten, Kundendaten drei Jahre nach dem letzten Kontakt, Rechnungsdaten nach acht Jahren.</p>
+<h2>4b. Kundenportal</h2>
+<p>Kunden mit Vertrag bekommen einen Zugang zum Kundenportal unter lou-digital.de/portal. Dort sehen sie den Stand ihres Projekts, Prüfungen ihrer Website (Erreichbarkeit, Antwortzeit, Zertifikat), ihre Betreuung, Workflows, Dokumente und Nachrichten. Gespeichert werden E-Mail-Adresse, Name, Firma, Telefon, Website, ein Passwort-Hash, auf Wunsch ein Schlüssel für den zweiten Faktor, Nachrichten und ein Protokoll der Anmeldungen. Das Portal setzt ausschließlich ein technisch notwendiges Sitzungs-Cookie (ldp, Laufzeit bis zum Abmelden, höchstens 30 Tage) und ein kurzlebiges Hinweis-Cookie; dafür ist keine Einwilligung nötig (§ 25 Abs. 2 TDDDG). Der Hilfe-Assistent im Portal beantwortet Fragen automatisch; dafür werden die Frage und Angaben zum Projekt an den KI-Dienst Claude (Anthropic PBC, USA, siehe Abschnitt 4a) übermittelt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Die Daten werden drei Jahre nach Ende des Vertrags gelöscht; einen Export ihrer Daten können Kunden jederzeit im Portal herunterladen.</p>
 <h2>5. Website-Check</h2>
 <p>Für den Website-Check ruft mein Server die von Ihnen genannte öffentliche Website auf und prüft sie an 100 Punkten. Dazu lädt er die Startseite, die Kontaktseite, einige Unterseiten und verlinkte Seiten derselben Website, Dateien wie robots.txt, security.txt und die Sitemap, liest das Zertifikat und fragt öffentliche DNS-Einträge der Domain ab, etwa für E-Mail. Er sieht dabei nur, was jeder Besucher sehen kann, und füllt keine Formulare aus.</p>
 <p>Beim Sofort-Check wird das Ergebnis nur in Ihrem Browser angezeigt und nicht gespeichert. Zum Schutz vor Missbrauch speichert der Server höchstens eine Stunde lang eine nicht zurückrechenbare Prüfsumme Ihrer IP-Adresse, um die Zahl der Checks zu begrenzen (Art. 6 Abs. 1 lit. f DSGVO).</p>
@@ -94,6 +96,7 @@
         <li><a href="/ueber-mich">Über mich</a></li>
         <li><a href="/fragen">Häufige Fragen</a></li>
         <li><a href="/kontakt">Anfrage senden</a></li>
+        <li><a href="/portal">Kundenportal</a></li>
       </ul></div>
       <div data-reveal style="--d:.15s"><h2>Rechtliches</h2><ul>
         <li><a href="/impressum">Impressum</a></li>
@@ -141,6 +144,6 @@
   </form>
 </div>
 <script src="/js/lenis.min.js?v=79e3a064" defer></script>
-<script src="/js/site.js?v=aaf24d7c" defer></script>
+<script src="/js/site.js?v=0aef383d" defer></script>
 </body>
 </html>
