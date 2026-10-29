@@ -531,6 +531,24 @@
     document.querySelectorAll('[data-pick],[data-bundle]').forEach(function (b) { b.addEventListener('click', function () { if (codeVal) { clearTimeout(ct); ct = setTimeout(checkCode, 250); } }); });
   }
 
+  /* ---------- Version 31: Enter sendet kein Formular, sondern springt ins nächste leere Feld ---------- */
+  ['contact', 'ask', 'fb-panel'].forEach(function (id) {
+    var f = $(id); if (!f) return;
+    var fields = function () { return [].filter.call(f.querySelectorAll('input, select, textarea'), function (el) { return !el.disabled && el.type !== 'hidden' && el.tabIndex !== -1 && el.offsetParent !== null; }); };
+    f.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      var t = e.target; if (!t || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON' || t.type === 'submit') return;
+      e.preventDefault();
+      var all = fields(), i = all.indexOf(t), next = null;
+      for (var j = i + 1; j < all.length; j++) { var el = all[j]; if (el.type === 'checkbox' || el.type === 'radio') continue; if (el.tagName === 'SELECT' || el.value.trim() === '') { next = el; break; } }
+      if (!next) for (var k = i + 1; k < all.length; k++) { if (all[k].type !== 'checkbox' && all[k].type !== 'radio') { next = all[k]; break; } }
+      if (next) { next.focus(); if (next.select && next.tagName !== 'SELECT') try { next.select(); } catch (x) {} }
+      else { var btn = f.querySelector('button[type="submit"]'); if (btn) btn.focus(); }
+    });
+    /* implizites Absenden (Enter in Textfeldern) zusätzlich am Formular abfangen; der Knopf sendet weiterhin */
+    f.addEventListener('submit', function (e) { if (e.submitter === null) { e.preventDefault(); e.stopImmediatePropagation(); } });
+  });
+
   /* ---------- Anfrageformular mit Auswahl und Terminwunsch ---------- */
   var form = $('contact');
   if (form) {
