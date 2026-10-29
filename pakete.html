@@ -29,7 +29,7 @@
 <link rel="preload" href="/img/fig-clip.webp?v=ed7c0325" as="image" type="image/webp" fetchpriority="high">
 <link rel="preload" href="/img/fig-mail.webp?v=8fc74828" as="image" type="image/webp" fetchpriority="high">
 <link rel="preload" href="/img/fig-web.webp?v=7ac4f9f6" as="image" type="image/webp" fetchpriority="high">
-<link rel="stylesheet" href="/css/site.css?v=08d017f1">
+<link rel="stylesheet" href="/css/site.css?v=b0b13ea6">
 <script>document.documentElement.classList.add('js');setTimeout(function(){if(!window.__ldReady)document.documentElement.classList.remove('js')},2500);(function(){try{var d=document,S=localStorage,ist=d.documentElement.lang==='en'?'en':'de',w=S.getItem('lou-sprache'),q=/[?&]lang=(de|en)(&|$)/.exec(location.search);if(q){w=q[1];S.setItem('lou-sprache',w)}d.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[hreflang]'),h=a&&a.getAttribute('hreflang');if(h==='de'||h==='en')try{S.setItem('lou-sprache',h)}catch(x){}},true);if(w!=='de'&&w!=='en'){if(/bot|crawl|spider|slurp|google|bing|yandex|baidu|duckduck|lighthouse|pagespeed|headless|preview|facebookexternalhit|embedly|pinterest|whatsapp|telegram|discord|skype|slack|gpt|claude|anthropic|perplexity|ccbot|bytespider|applebot|amazonbot|semrush|ahrefs|mj12|petal|seznam|ia_archiver/i.test(navigator.userAgent||''))return;w=(function(){var L=[].concat(navigator.languages||[],navigator.language||[]);try{L.push(Intl.DateTimeFormat().resolvedOptions().locale||'')}catch(x){}for(var i=0;i<L.length;i++)if(/^de\b/i.test(String(L[i])))return'de';return'en'})()}if(w!==ist&&d.querySelector('link[rel=canonical]')){var a=d.querySelector('link[rel=alternate][hreflang='+w+']');if(a&&a.href&&a.href.split(/[?#]/)[0]!==location.href.split(/[?#]/)[0]){var p=location.search.slice(1).split('&').filter(function(x){return x&&!/^lang=/.test(x)}).join('&');location.replace(a.href+(p?'?'+p:'')+location.hash)}}}catch(e){}})();</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Start", "item": "https://lou-digital.de/"}, {"@type": "ListItem", "position": 2, "name": "Pakete und Preise", "item": "https://lou-digital.de/pakete"}]}</script>
 <link rel="stylesheet" href="/css/angebote.css?v=2e11e8fc">
@@ -56,9 +56,10 @@
 <section class="sec sec--tight preis-sec preis-sec--top" id="rabatte"><div class="wrap">
   <h2 class="h2" data-reveal>Pakete zum Anklicken</h2>
   <p class="lead zd-lead" data-reveal style="--d:.05s">Ein Klick wählt das ganze Paket aus, unten erscheint die Summe mit Rabatt, und Sie senden die Anfrage direkt ab. Sie bekommen sofort eine unverbindliche Preisübersicht per E-Mail.</p>
-  <div class="rab-grid rab-grid--pick">
-    <button class="rab rab--top rab--btn" type="button" data-bundle="website,automatik" data-bundle-tier="M" data-track="Paket: Startpaket" data-reveal style="--d:.05s"><span class="rab-tag">Startpaket</span><h3>Website + Automatik + Betreuung M</h3><p class="rab-p"><b>612 €</b> einmalig statt 680 €, dann <b>49 €</b> im Monat, erster Monat geschenkt</p><p>Alles aus einer Hand: Website in 7 Tagen, Anfragen aufs Handy und laufende Pflege mit 30 Minuten Änderungszeit im Monat. Monatlich kündbar.</p><span class="rab-go">Paket auswählen</span></button>
-    <button class="rab rab--btn" type="button" data-bundle="website,automatik" data-track="Paket: Kombi" data-reveal style="--d:.1s"><span class="rab-tag">Kombi</span><h3>Website + Anfrage-Automatik</h3><p class="rab-p"><b>612 €</b> statt 680 € (10 % Kombi-Rabatt)</p><p>Website und Automatik werden in einem Durchgang gebaut, deshalb kann ich den Preis senken. Normalpreis 1.242 € statt 1.380 €.</p><span class="rab-go">Paket auswählen</span></button>
+  <p class="aktion-banner" id="aktion-banner" hidden></p>
+    <div class="rab-grid rab-grid--pick">
+    <button class="rab rab--top rab--btn" type="button" data-bundle="website,automatik" data-bundle-tier="M" data-track="Paket: Startpaket" data-reveal style="--d:.05s"><span class="rab-tag">Startpaket</span><h3>Website + Automatik + Betreuung M</h3><p class="rab-p"><b data-preis="kombi">612 €</b> einmalig statt <span data-preis="kombi-ohne">680 €</span>, dann <b>49 €</b> im Monat, erster Monat geschenkt</p><p>Alles aus einer Hand: Website in 7 Tagen, Anfragen aufs Handy und laufende Pflege mit 30 Minuten Änderungszeit im Monat. Monatlich kündbar.</p><span class="rab-go">Paket auswählen</span></button>
+    <button class="rab rab--btn" type="button" data-bundle="website,automatik" data-track="Paket: Kombi" data-reveal style="--d:.1s"><span class="rab-tag">Kombi</span><h3>Website + Anfrage-Automatik</h3><p class="rab-p"><b data-preis="kombi">612 €</b> statt <span data-preis="kombi-ohne">680 €</span> (10 % Kombi-Rabatt)</p><p>Website und Automatik werden in einem Durchgang gebaut, deshalb kann ich den Preis senken. Normalpreis <span data-preis="kombi-normal">1.242 €</span> statt <span data-preis="kombi-normal-ohne">1.380 €</span>.</p><span class="rab-go">Paket auswählen</span></button>
     <button class="rab rab--btn" type="button" data-bundle="" data-bundle-tier="M" data-bundle-jahr="1" data-track="Paket: Jahresbetreuung" data-reveal style="--d:.15s"><span class="rab-tag">Jahrespaket</span><h3>Betreuung M für ein Jahr</h3><p class="rab-p"><b>490 €</b> im Jahr statt 588 € (zwei Monate geschenkt)</p><p>Für bestehende oder neue Websites: Überwachung, Sicherung, Updates, Monatsbericht und 30 Minuten Änderungen im Monat. S für 290 €, L für 790 € im Jahr geht genauso.</p><span class="rab-go">Paket auswählen</span></button>
   </div>
   <div class="rab-grid rab-grid--info">
@@ -184,6 +185,6 @@
   </form>
 </div>
 <script src="/js/lenis.min.js?v=79e3a064" defer></script>
-<script src="/js/site.js?v=0aef383d" defer></script>
+<script src="/js/site.js?v=16762636" defer></script>
 </body>
 </html>

@@ -21,8 +21,9 @@
     askOk: 'Thank you, your question has arrived.', askSend: 'Send question',
     picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off', kombi: ' incl. 10% bundle discount', perYear: '/year (two months free)', firstFree: ', first month free',
     pilotOn: function (n, left) { return 'Code PILOT active: you save ' + n + ' vs. the regular price' + (left ? ' (' + left + ' of 5 pilot slots left)' : ''); }, pilotOff: 'Pilot phase finished, regular prices apply.',
+    aktionOn: function (t, c, n, left) { return 'Promotion ' + t + ' (code ' + c + ') active: you save ' + n + (left ? ' (' + left + ' left)' : ''); },
     codeOk: function (c, p, n) { return 'Code ' + c + ' (' + p + '%): −' + n; }, codeOkNoSum: function (c, p) { return 'Code ' + c + ' (' + p + '%) applies to your first package.'; },
-    codeBad: { unbekannt: 'This code is unknown.', unbekannt_empfehlung: 'This referral code will be checked before the quote.', abgelaufen: 'This code has expired.', aufgebraucht: 'This code has been used up.', inaktiv: 'This code is no longer active.', pruefen: 'Code will be checked before the quote.' },
+    codeBad: { unbekannt: 'This code is unknown.', unbekannt_empfehlung: 'This referral code will be checked before the quote.', abgelaufen: 'This code has expired.', aufgebraucht: 'This code has been used up.', inaktiv: 'This code is no longer active.', andere_aktion: 'Another promotion is running right now and is applied automatically.', noch_nicht: 'This code is not valid yet.', pruefen: 'Code will be checked before the quote.' },
     codeAdd: 'Enter a code', codeGo: 'Apply', codePh: 'LD-ABCD', codeDel: 'remove',
     fbOk: 'Thank you! Your feedback has arrived.', fbSend: 'Send', halt: 'Pause motion',
     qcRun: 'Checking', qcGo: 'Check now', qcPassed: 'passed', qcMissing: 'missing',
@@ -40,8 +41,9 @@
     askOk: 'Danke, Ihre Frage ist angekommen.', askSend: 'Frage senden',
     picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig', kombi: ' inkl. 10 % Kombi-Rabatt', perYear: '/Jahr (zwei Monate geschenkt)', firstFree: ', erster Monat geschenkt',
     pilotOn: function (n, left) { return 'Code PILOT aktiv: Sie sparen ' + n + ' gegenüber dem Normalpreis' + (left ? ' (noch ' + left + ' von 5 Pilotplätzen)' : ''); }, pilotOff: 'Pilotphase beendet, es gelten die Normalpreise.',
+    aktionOn: function (t, c, n, left) { return 'Aktion ' + t + ' (Code ' + c + ') aktiv: Sie sparen ' + n + (left ? ' (noch ' + left + ' frei)' : ''); },
     codeOk: function (c, p, n) { return 'Code ' + c + ' (' + p + ' %): −' + n; }, codeOkNoSum: function (c, p) { return 'Code ' + c + ' (' + p + ' %) gilt für Ihr erstes Paket.'; },
-    codeBad: { unbekannt: 'Dieser Code ist unbekannt.', unbekannt_empfehlung: 'Dieser Empfehlungscode wird vor dem Angebot geprüft.', abgelaufen: 'Dieser Code ist abgelaufen.', aufgebraucht: 'Dieser Code ist aufgebraucht.', inaktiv: 'Dieser Code ist nicht mehr aktiv.', pruefen: 'Der Code wird vor dem Angebot geprüft.' },
+    codeBad: { unbekannt: 'Dieser Code ist unbekannt.', unbekannt_empfehlung: 'Dieser Empfehlungscode wird vor dem Angebot geprüft.', abgelaufen: 'Dieser Code ist abgelaufen.', aufgebraucht: 'Dieser Code ist aufgebraucht.', inaktiv: 'Dieser Code ist nicht mehr aktiv.', andere_aktion: 'Gerade läuft schon eine andere Aktion, die wird automatisch angewendet.', noch_nicht: 'Dieser Code gilt noch nicht.', pruefen: 'Der Code wird vor dem Angebot geprüft.' },
     codeAdd: 'Code eingeben', codeGo: 'Einlösen', codePh: 'LD-ABCD', codeDel: 'entfernen',
     fbOk: 'Danke! Ihr Feedback ist angekommen.', fbSend: 'Senden', halt: 'Bewegung anhalten',
     qcRun: 'Wird geprüft', qcGo: 'Jetzt prüfen', qcPassed: 'bestanden', qcMissing: 'fehlt',
@@ -407,7 +409,8 @@
 
   /* ---------- Version 30: Pilotstand und Codes live vom Server (/api/code.php) ---------- */
   var NORMAL = { website: 790, automatik: 590, umfrage: 290 }, PILOT = { website: 390, automatik: 290, umfrage: 190 };
-  var pilotInfo = { pilot: true, frei: 5 };
+  var PREIS = { website: 390, automatik: 290, umfrage: 190 }; /* aktuelle Preise, kommen vom Server (/api/code.php) */
+  var pilotInfo = { pilot: true, frei: 5 }, aktionInfo = null;
   var codeInfo = null; /* { code, gueltig, art, prozent, text, grund } */
   var codeApi = function (code, pakete, cb) {
     if (!window.fetch) { cb(null); return; }
@@ -416,18 +419,26 @@
   };
   var storedCode = function () { var c = ''; try { c = sessionStorage.getItem('ld-code') || ''; } catch (e) {} var q = new URLSearchParams(location.search).get('code'); if (q) { c = q; } return (c || '').replace(/[^A-Za-z0-9-]/g, '').toUpperCase().slice(0, 20); };
   var keepCode = function (c) { try { if (c) sessionStorage.setItem('ld-code', c); else sessionStorage.removeItem('ld-code'); } catch (e) {} };
-  /* Pilotphase vorbei: Normalpreise in Tabelle und Karten einsetzen */
+  /* Preise vom Server übernehmen: Pilot, Sonderaktion oder Normalpreise in Tabelle und Karten einsetzen */
   var applyPilot = function (d) {
-    if (!d) return;
-    pilotInfo = { pilot: !!d.pilot, frei: d.pilot_frei || 0 };
+    if (!d || !d.preise) return;
+    pilotInfo = { pilot: !!d.pilot, frei: d.pilot_frei || 0 }; aktionInfo = d.aktion || null;
     document.body.classList.toggle('pilot-aus', !pilotInfo.pilot);
-    if (pilotInfo.pilot) return;
+    document.body.classList.toggle('aktion-an', !!(aktionInfo && !pilotInfo.pilot));
+    Object.keys(d.preise).forEach(function (k) { if (d.preise[k] && d.preise[k].length) { PREIS[k] = d.preise[k][0]; NORMAL[k] = d.preise[k][1]; } });
     document.querySelectorAll('[data-pick][data-once]').forEach(function (b) {
       var k = b.getAttribute('data-pick'); if (!NORMAL[k]) return;
-      b.setAttribute('data-once', String(NORMAL[k]));
+      if (parseInt(b.getAttribute('data-once') || '0', 10) === PREIS[k]) return;
+      b.setAttribute('data-once', String(PREIS[k]));
       var row = b.closest('[data-row]'); var cost = row && row.querySelector('.cost');
-      if (cost) { cost.innerHTML = ''; cost.textContent = T.eur(NORMAL[k]); }
+      if (cost) { cost.innerHTML = ''; if (PREIS[k] < NORMAL[k]) { var st = document.createElement('s'); st.textContent = T.eur(NORMAL[k]); cost.appendChild(st); } cost.appendChild(document.createTextNode(T.eur(PREIS[k]))); }
     });
+    /* Paketkarten: Kombi-Preise aus den aktuellen Preisen */
+    var kw = PREIS.website + PREIS.automatik, kn = NORMAL.website + NORMAL.automatik;
+    var pv = { 'kombi': T.eur(Math.round(kw * 0.9)), 'kombi-ohne': T.eur(kw), 'kombi-normal': T.eur(Math.round(kn * 0.9)), 'kombi-normal-ohne': T.eur(kn) };
+    document.querySelectorAll('[data-preis]').forEach(function (el) { var v = pv[el.getAttribute('data-preis')]; if (v) el.textContent = v; });
+    var ab = $('aktion-banner');
+    if (ab) { if (aktionInfo && !pilotInfo.pilot) { ab.hidden = false; ab.textContent = T.aktionOn(aktionInfo.titel, aktionInfo.code, '', aktionInfo.frei).replace(': Sie sparen ', '').replace(': you save ', '') + (aktionInfo.text ? ' – ' + aktionInfo.text : ''); } else ab.hidden = true; }
   };
 
   /* ---------- Pakete auswählen (Tabelle) mit Leiste unten ---------- */
@@ -441,7 +452,7 @@
     var renderCode = function () {
       var keys = Object.keys(picks).filter(function (k) { return NORMAL[k]; });
       var html = '';
-      if (keys.length && pilotInfo.pilot) { var sp = 0; keys.forEach(function (k) { sp += NORMAL[k] - PILOT[k]; }); html += '<span class="pb-tag">' + T.pilotOn(T.eur(sp), pilotInfo.frei) + '</span>'; }
+      if (keys.length && (pilotInfo.pilot || aktionInfo)) { var sp = 0; keys.forEach(function (k) { sp += NORMAL[k] - PREIS[k]; }); if (sp > 0) html += '<span class="pb-tag">' + (pilotInfo.pilot ? T.pilotOn(T.eur(sp), pilotInfo.frei) : T.aktionOn(aktionInfo.titel, aktionInfo.code, T.eur(sp), aktionInfo.frei)) + '</span>'; }
       if (codeInfo && codeInfo.code) {
         if (codeInfo.gueltig && codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--ok">' + (codeInfo.ersparnis ? T.codeOk(codeInfo.code, codeInfo.prozent, T.eur(codeInfo.ersparnis)) : T.codeOkNoSum(codeInfo.code, codeInfo.prozent)) + '</span>';
         else if (codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--warn">' + codeInfo.code + ': ' + (T.codeBad[codeInfo.grund] || T.codeBad.unbekannt) + '</span>';
@@ -460,7 +471,7 @@
     };
     var checkCode = function () {
       var keys = Object.keys(picks).filter(function (k) { return NORMAL[k]; });
-      codeApi(codeVal, keys, function (d) { applyPilot(d); codeInfo = d && d.code ? d.code : (codeVal ? { code: codeVal, gueltig: false, grund: 'pruefen', art: '' } : null); render(); });
+      codeApi(codeVal, keys, function (d) { applyPilot(d); codeInfo = d && d.code ? d.code : (codeVal ? { code: codeVal, gueltig: false, grund: 'pruefen', art: '' } : null); if (codeInfo && codeInfo.art === 'pilot' && d && d.aktion && codeInfo.code === d.aktion.code) codeInfo = null; render(); });
     };
     var render = function () {
       var keys = Object.keys(picks), n = keys.length + (tier ? 1 : 0), once = 0;
@@ -542,7 +553,7 @@
         codeApi(c, sel, function (d) {
           if (!hint) return; applyPilot(d);
           var r = d && d.code;
-          if (r && r.gueltig && r.art === 'pilot') { hint.textContent = T.pilotOn(T.eur(r.ersparnis), d.pilot_frei); hint.className = 'hint hint--ok'; }
+          if (r && r.gueltig && r.art === 'pilot') { hint.textContent = (d.pilot ? T.pilotOn(T.eur(r.ersparnis), d.pilot_frei) : T.aktionOn(d.aktion ? d.aktion.titel : r.code, r.code, T.eur(r.ersparnis), d.aktion ? d.aktion.frei : 0)); hint.className = 'hint hint--ok'; }
           else if (r && r.gueltig) { hint.textContent = (r.ersparnis ? T.codeOk(r.code, r.prozent, T.eur(r.ersparnis)) : T.codeOkNoSum(r.code, r.prozent)) + (r.text ? ' – ' + r.text : ''); hint.className = 'hint hint--ok'; }
           else { hint.textContent = T.codeBad[(r && r.grund) || 'pruefen'] || T.codeBad.unbekannt; hint.className = 'hint hint--warn'; }
         });

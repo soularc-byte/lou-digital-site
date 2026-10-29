@@ -86,7 +86,7 @@ function p_tickets_zaehlen(int $kunde): int { $r = pd_row("SELECT COUNT(*) c FRO
 function p_nav(?array $me, bool $admin, string $route): string {
   if (!$me) return '';
   $k = [['', 'Übersicht'], ['projekt', 'Projekt'], ['website', 'Website'], ['betreuung', 'Betreuung'], ['workflows', 'Automatik'], ['dokumente', 'Dokumente'], ['nachrichten', 'Nachrichten'], ['hilfe', 'Hilfe'], ['empfehlen', 'Empfehlen'], ['berichte', 'Berichte'], ['einstellungen', 'Einstellungen']];
-  $a = [['admin', 'Büro'], ['admin/auftraege', 'Aufträge'], ['admin/kunden', 'Kunden'], ['admin/codes', 'Codes'], ['admin/tickets', 'Tickets'], ['admin/einstellungen', 'Einstellungen']];
+  $a = [['admin', 'Übersicht'], ['admin/buero', 'Eingang'], ['admin/auftraege', 'Aufträge'], ['admin/kunden', 'Kunden'], ['admin/tickets', 'Tickets'], ['admin/codes', 'Codes & Aktionen'], ['admin/einstellungen', 'Einstellungen']];
   $o = '<nav class="p-nav" aria-label="Portal"><ul>';
   foreach ($admin ? $a : $k as [$r, $t]) { $on = $route === $r || ($r !== '' && $r !== 'admin' && strpos($route, $r) === 0); $o .= '<li><a href="' . P_BASE . '/' . $r . '"' . ($on ? ' aria-current="page"' : '') . '>' . $t . '</a></li>'; }
   if ($admin) $o .= '<li class="p-nav-sep"><a href="' . P_BASE . '/einstellungen">Mein Konto</a></li>';

@@ -129,3 +129,14 @@ a.p-kpi:hover { border-color: var(--line-strong); }
 .p-foot a { color: inherit; }
 code { font-family: var(--font-mono); font-size: .92em; background: var(--surface); padding: 1px 5px; border-radius: 5px; }
 @media (max-width: 599px) { .p-card { padding: 16px; border-radius: 16px; } .p-table { display: block; overflow-x: auto; } .p-msg { max-width: 94%; } }
+/* Version 31: ruhigere Knöpfe im Portal, saubere Ausrichtung */
+.p-body .btn { box-shadow: 0 1px 2px rgba(17,25,27,.10); transform: none; }
+.p-body .btn:hover { box-shadow: 0 2px 6px rgba(17,25,27,.14); transform: none; }
+.p-body .btn--line { background: #fff; }
+.p-actions { align-items: center; }
+.p-actions .p-inline { margin: 0; }
+.p-actions form { display: inline-flex; align-items: center; gap: 8px; }
+.p-inline input[type="number"] { width: 90px; }
+.p-nowrap { white-space: nowrap; }
+.p-inline-form { display: inline; margin-left: 8px; }
+.p-card { box-shadow: none; }

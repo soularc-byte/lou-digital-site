@@ -1,5 +1,5 @@
 <?php
-/* Lou Digital – Datenschicht für Codes, Aufträge und Kundenportal (Version 30, 29.10.2026)
+/* Lou Digital – Datenschicht für Codes, Aufträge und Kundenportal (Version 31, 29.10.2026)
    SQLite-Datei außerhalb des Webroots: ../ld-data/portal.sqlite. Wird beim ersten Aufruf angelegt.
    Enthält: Preise, Rabattcodes (Pilot, Empfehlung, Aktion), Aufträge, Kunden, Sitzungen, 2FA, Tickets, Dokumente. */
 declare(strict_types=1);
@@ -56,6 +56,12 @@ function pd_schema(PDO $db): void {
   CREATE INDEX IF NOT EXISTS i_auf_k ON auftraege(kunde_id); CREATE INDEX IF NOT EXISTS i_auf_e ON auftraege(email); CREATE INDEX IF NOT EXISTS i_pr_k ON pruefungen(kunde_id, zeit);
   CREATE INDEX IF NOT EXISTS i_na_t ON nachrichten(ticket_id); CREATE INDEX IF NOT EXISTS i_tk_k ON tickets(kunde_id);");
   $db->exec("INSERT OR IGNORE INTO codes (code, art, prozent, max_nutzung, text, angelegt) VALUES ('" . LD_PILOT_CODE . "', 'pilot', 0, " . LD_PILOT_MAX . ", 'Pilotpreis für die ersten fünf Kunden mit Referenz', '" . date('c') . "')");
+  /* Version 31: Sonderaktionen (automatisch gültig, feste Preise oder Prozent, Zeitraum) */
+  $cols = array_column($db->query('PRAGMA table_info(codes)')->fetchAll(), 'name');
+  foreach (['titel' => "TEXT NOT NULL DEFAULT ''", 'auto' => 'INTEGER NOT NULL DEFAULT 0', 'von' => "TEXT NOT NULL DEFAULT ''", 'preis_website' => 'INTEGER NOT NULL DEFAULT 0', 'preis_automatik' => 'INTEGER NOT NULL DEFAULT 0', 'preis_umfrage' => 'INTEGER NOT NULL DEFAULT 0'] as $c => $def) if (!in_array($c, $cols, true)) $db->exec("ALTER TABLE codes ADD COLUMN $c $def");
+  $db->exec("UPDATE codes SET auto = 1, titel = 'Pilotpreis', preis_website = " . LD_PREISE['website'][0] . ", preis_automatik = " . LD_PREISE['automatik'][0] . ", preis_umfrage = " . LD_PREISE['umfrage'][0] . " WHERE code = '" . LD_PILOT_CODE . "' AND titel = ''");
+  $cols = array_column($db->query('PRAGMA table_info(auftraege)')->fetchAll(), 'name');
+  if (!in_array('aktion', $cols, true)) $db->exec("ALTER TABLE auftraege ADD COLUMN aktion TEXT NOT NULL DEFAULT ''");
 }
 function pd_now(): string { return date('Y-m-d H:i:s'); }
 function pd_q(string $sql, array $p = []): PDOStatement { $s = pd()->prepare($sql); $s->execute($p); return $s; }
@@ -65,35 +71,71 @@ function pd_set(string $k, string $v): void { pd_q('INSERT INTO einstellungen (s
 function pd_get(string $k, string $d = ''): string { $r = pd_row('SELECT wert FROM einstellungen WHERE schluessel = ?', [$k]); return $r ? (string)$r['wert'] : $d; }
 function pd_log(int $kunde, string $aktion, string $details = ''): void { try { pd_q('INSERT INTO protokoll (kunde_id, aktion, details, zeit) VALUES (?, ?, ?, ?)', [$kunde, $aktion, mb_substr($details, 0, 500), pd_now()]); } catch (Throwable $e) {} }
 
-/* ---------- Pilotpreis: frei, solange weniger als fünf Aufträge mit Pilotpreis bezahlt sind ---------- */
-function ld_pilot_frei(): int {
-  try { $c = pd_row('SELECT max_nutzung, genutzt, aktiv FROM codes WHERE code = ?', [LD_PILOT_CODE]); } catch (Throwable $e) { return LD_PILOT_MAX; }
-  if (!$c || !(int)$c['aktiv']) return 0;
-  return max(0, (int)$c['max_nutzung'] - (int)$c['genutzt']);
+/* ---------- Aktionen: Pilot und Sonderaktionen gelten automatisch, solange sie laufen und Plätze frei sind ---------- */
+function ld_code_laeuft(array $c): bool {
+  if (!(int)$c['aktiv']) return false;
+  $heute = date('Y-m-d');
+  if (($c['von'] ?? '') !== '' && $c['von'] > $heute) return false;
+  if ($c['bis'] !== '' && $c['bis'] < $heute) return false;
+  if ((int)$c['max_nutzung'] > 0 && (int)$c['genutzt'] >= (int)$c['max_nutzung']) return false;
+  return true;
 }
-/* Grundpreise je nach Pilotphase: ['website' => [preis, normalpreis], …] */
-function ld_preise(bool $pilot): array {
+/* Die gerade gültige automatische Aktion (Pilot zuerst, dann die neueste Sonderaktion) oder null */
+function ld_aktion_aktiv(): ?array {
+  try { $rows = pd_all("SELECT * FROM codes WHERE auto = 1 ORDER BY CASE art WHEN 'pilot' THEN 0 ELSE 1 END, angelegt DESC"); } catch (Throwable $e) { return null; }
+  foreach ($rows as $c) if (ld_code_laeuft($c)) return $c;
+  return null;
+}
+function ld_pilot_frei(): int {
+  try { $c = pd_row('SELECT * FROM codes WHERE code = ?', [LD_PILOT_CODE]); } catch (Throwable $e) { return LD_PILOT_MAX; }
+  if (!$c || !ld_code_laeuft($c)) return 0;
+  return (int)$c['max_nutzung'] > 0 ? max(0, (int)$c['max_nutzung'] - (int)$c['genutzt']) : 99;
+}
+/* Preise je Paket: ['website' => [aktueller Preis, Normalpreis], …]; $aktion = Zeile aus codes oder null (Normalpreise) */
+function ld_preise($aktion = null): array {
+  if ($aktion === true) $aktion = ld_aktion_aktiv(); elseif ($aktion === false) $aktion = null;
   $o = [];
-  foreach (LD_PREISE as $k => [$p, $n]) $o[$k] = [$pilot ? $p : $n, $n];
+  foreach (LD_PREISE as $k => [$p, $n]) {
+    $preis = $n;
+    if ($aktion) {
+      $fest = (int)($aktion['preis_' . $k] ?? 0);
+      if ($fest > 0) $preis = min($n, $fest);
+      elseif ((int)$aktion['prozent'] > 0) $preis = (int)round($n * (100 - (int)$aktion['prozent']) / 100);
+    }
+    $o[$k] = [$preis, $n];
+  }
   return $o;
+}
+/* Ersparnis einer Aktion für die gewählten Pakete gegenüber dem Normalpreis */
+function ld_aktion_ersparnis(?array $aktion, array $pakete): int {
+  if (!$aktion) return 0; $pr = ld_preise($aktion); $s = 0;
+  foreach ($pakete as $k) if (isset($pr[$k])) $s += $pr[$k][1] - $pr[$k][0];
+  return $s;
+}
+/* Kurzinfo für Website und Mails */
+function ld_aktion_info(?array $aktion, array $pakete = []): ?array {
+  if (!$aktion) return null;
+  return ['code' => $aktion['code'], 'art' => $aktion['art'], 'titel' => $aktion['titel'] !== '' ? $aktion['titel'] : $aktion['code'], 'text' => (string)$aktion['text'], 'bis' => (string)$aktion['bis'],
+          'frei' => (int)$aktion['max_nutzung'] > 0 ? max(0, (int)$aktion['max_nutzung'] - (int)$aktion['genutzt']) : 0, 'max' => (int)$aktion['max_nutzung'], 'ersparnis' => ld_aktion_ersparnis($aktion, $pakete)];
 }
 /* Code prüfen (ohne ihn zu verbrauchen). $pakete = gewählte Einmal-Pakete, $tier = Betreuungsstufe oder '' */
 function ld_code_pruefen(string $codeIn, array $pakete = [], string $tier = '', bool $jahr = false): array {
   $codeIn = strtoupper(preg_replace('/[^A-Za-z0-9-]/', '', $codeIn) ?? '');
-  $pilotFrei = ld_pilot_frei();
-  $preise = ld_preise($pilotFrei > 0);
+  $aktion = ld_aktion_aktiv(); $pilotFrei = ld_pilot_frei();
+  $preise = ld_preise($aktion);
   $r = ['code' => $codeIn, 'gueltig' => false, 'art' => '', 'prozent' => 0, 'text' => '', 'grund' => '', 'ersparnis' => 0, 'pilot_frei' => $pilotFrei];
   if ($codeIn === '') { $r['grund'] = 'leer'; return $r; }
   try { $c = pd_row('SELECT * FROM codes WHERE code = ?', [$codeIn]); } catch (Throwable $e) { $c = null; }
   if (!$c) { $r['grund'] = preg_match('/^LD-[A-Z0-9]{4,8}$/', $codeIn) ? 'unbekannt_empfehlung' : 'unbekannt'; return $r; }
   $r['art'] = (string)$c['art']; $r['prozent'] = (int)$c['prozent']; $r['text'] = (string)$c['text'];
   if (!(int)$c['aktiv']) { $r['grund'] = 'inaktiv'; return $r; }
+  if (($c['von'] ?? '') !== '' && $c['von'] > date('Y-m-d')) { $r['grund'] = 'noch_nicht'; return $r; }
   if ($c['bis'] !== '' && $c['bis'] < date('Y-m-d')) { $r['grund'] = 'abgelaufen'; return $r; }
   if ((int)$c['max_nutzung'] > 0 && (int)$c['genutzt'] >= (int)$c['max_nutzung']) { $r['grund'] = 'aufgebraucht'; return $r; }
-  if ($c['art'] === 'pilot') {
-    // Pilot gilt automatisch; der Code bestätigt nur den Pilotpreis
-    foreach ($pakete as $k) if (isset(LD_PREISE[$k])) $r['ersparnis'] += LD_PREISE[$k][1] - LD_PREISE[$k][0];
-    $r['gueltig'] = true; $r['grund'] = 'pilot'; return $r;
+  if ((int)($c['auto'] ?? 0) === 1 && (!$aktion || $aktion['code'] !== $c['code'])) { $r['grund'] = 'andere_aktion'; $r['art'] = 'pilot'; return $r; }
+  if ((int)($c['auto'] ?? 0) === 1) {
+    // Automatische Aktion (Pilot, Sonderaktion): gilt ohnehin, der Code bestätigt sie nur. Gilt gerade eine andere Aktion, zählt die bessere.
+    $r['ersparnis'] = ld_aktion_ersparnis($c, $pakete); $r['gueltig'] = true; $r['grund'] = $c['art'] === 'pilot' ? 'pilot' : 'aktion'; $r['art'] = 'pilot'; $r['titel'] = $c['titel'] !== '' ? $c['titel'] : $c['code']; return $r;
   }
   $r['gueltig'] = true;
   $r['ersparnis'] = ld_code_rabatt($r['prozent'], $pakete, $preise);
@@ -112,10 +154,11 @@ function ld_code_verbrauchen(array $auftrag): void {
   $db = pd();
   $db->beginTransaction();
   try {
-    if ((int)$auftrag['pilot']) $db->exec("UPDATE codes SET genutzt = genutzt + 1 WHERE code = '" . LD_PILOT_CODE . "'");
+    $akt = (string)($auftrag['aktion'] ?? ''); if ($akt === '' && (int)$auftrag['pilot']) $akt = LD_PILOT_CODE;
+    if ($akt !== '') pd_q('UPDATE codes SET genutzt = genutzt + 1 WHERE code = ?', [$akt]);
     if ($auftrag['code'] !== '' && $auftrag['code'] !== LD_PILOT_CODE) {
       $c = pd_row('SELECT * FROM codes WHERE code = ?', [$auftrag['code']]);
-      if ($c) {
+      if ($c && $c['code'] !== $akt) {
         pd_q('UPDATE codes SET genutzt = genutzt + 1 WHERE code = ?', [$c['code']]);
         if ($c['art'] === 'empfehlung' && (int)$c['kunde_id'] > 0 && (int)$c['gutschrift'] > 0) {
           pd_q('INSERT INTO gutschriften (kunde_id, betrag, grund, angelegt) VALUES (?, ?, ?, ?)', [(int)$c['kunde_id'], (int)$c['gutschrift'], 'Empfehlung ' . ($auftrag['firma'] !== '' ? $auftrag['firma'] : $auftrag['name']) . ' (Auftrag #' . $auftrag['id'] . ')', pd_now()]);
@@ -147,9 +190,9 @@ function ld_guthaben(int $kunde): int { $r = pd_row('SELECT COALESCE(SUM(betrag)
 /* ---------- Auftrag aus einer Website-Anfrage speichern ---------- */
 function ld_auftrag_anlegen(array $d): int {
   $k = pd_row('SELECT id FROM kunden WHERE email = ?', [strtolower($d['email'])]);
-  pd_q('INSERT INTO auftraege (kunde_id, email, name, firma, telefon, pakete, stufe, zahlung, pilot, einmalig, monatlich, rabatt, code, code_art, status, nachricht, sprache, angelegt, aktualisiert)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [$k ? (int)$k['id'] : 0, strtolower($d['email']), $d['name'], $d['firma'], $d['telefon'], implode(',', $d['pakete']), $d['stufe'], $d['zahlung'], (int)$d['pilot'], (int)$d['einmalig'], (int)$d['monatlich'], (int)$d['rabatt'],
+  pd_q('INSERT INTO auftraege (kunde_id, email, name, firma, telefon, pakete, stufe, zahlung, pilot, aktion, einmalig, monatlich, rabatt, code, code_art, status, nachricht, sprache, angelegt, aktualisiert)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [$k ? (int)$k['id'] : 0, strtolower($d['email']), $d['name'], $d['firma'], $d['telefon'], implode(',', $d['pakete']), $d['stufe'], $d['zahlung'], (int)$d['pilot'], (string)($d['aktion'] ?? ''), (int)$d['einmalig'], (int)$d['monatlich'], (int)$d['rabatt'],
      $d['code'], $d['code_art'], 'angebot', mb_substr($d['nachricht'], 0, 1500), $d['sprache'], pd_now(), pd_now()]);
   return (int)pd()->lastInsertId();
 }
@@ -275,4 +318,23 @@ function ld_portal_hook(string $text): void {
   $ch = curl_init($url);
   curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 6, CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(['quelle' => 'portal', 'art' => 'ereignis', 'text' => mb_substr($text, 0, 3500)], JSON_UNESCAPED_UNICODE)]);
   @curl_exec($ch); curl_close($ch);
+}
+
+/* ---------- Brücke zum Büro (n8n LD-10, Datentabellen Bereich „lou“). Adresse: Setting buero_url ---------- */
+function ld_buero(string $op, array $data = [], int $timeout = 25): ?array {
+  try { $url = pd_get('buero_url'); } catch (Throwable $e) { return null; }
+  if ($url === '' || !preg_match('~^https://n8n\.oblivion-hq\.duckdns\.org/webhook/[A-Za-z0-9_/-]+$~', $url) || !function_exists('curl_init')) return null;
+  $ch = curl_init($url);
+  curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 4, CURLOPT_TIMEOUT => $timeout, CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(array_merge(['op' => $op], $data), JSON_UNESCAPED_UNICODE)]);
+  $r = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE); curl_close($ch);
+  $j = is_string($r) ? json_decode($r, true) : null;
+  return ($code === 200 && is_array($j)) ? $j : null;
+}
+/* Kunde aus dem Portal ins Büro übernehmen (anlegen oder nach E-Mail aktualisieren) */
+function ld_buero_kunde_sync(array $k, string $status = 'kunde', string $notiz = ''): void {
+  $liste = ld_buero('liste');
+  if ($liste === null) return;
+  $id = 0;
+  foreach ($liste['kunden'] ?? [] as $bk) if (strtolower((string)($bk['email'] ?? '')) === strtolower((string)$k['email']) && (string)$k['email'] !== '') { $id = (int)$bk['id']; break; }
+  ld_buero('kunde_save', ['id' => $id, 'daten' => ['name' => (string)$k['name'], 'firma' => (string)$k['firma'], 'email' => (string)$k['email'], 'telefon' => (string)$k['telefon'], 'website' => (string)$k['website'], 'status' => $status, 'notizen' => $notiz !== '' ? $notiz : ('Portal-Konto #' . (int)$k['id'] . ($k['stufe'] !== '' ? ', Betreuung ' . $k['stufe'] : '')), 'quelle' => 'portal']]);
 }
