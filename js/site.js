@@ -2,6 +2,7 @@
    Anfrage mit Terminwunsch, Sofort-Check, Feedback, Reichweitenmessung ohne Cookies
    Version 26 (28.10.2026): Blockregale links und rechts, Knopf zum Anhalten
    Version 27 (28.10.2026): Kopfzeile passt sich an (große Schrift auf Android, schmale Handys, Tablets)
+   Version 29 (29.10.2026): Menü fährt aus, Fußzeile zur Startseite, Kombi-Rabatt in der Paketauswahl
    Version 28 (29.10.2026): Blöcke bewegen sich immer (bei „weniger Bewegung“ ruhig), Tempo atmet, Logo unten führt nach oben, Karten neigen sich */
 (function () {
   'use strict';
@@ -18,7 +19,7 @@
     okText: 'You will receive a confirmation by email in a moment. I will reply personally, usually within 24 hours on working days.',
     reqSel: 'Request this selection', reqCheck: 'Request the free check', freeNote: 'The check is free and without obligation. Add building blocks for a price.',
     askOk: 'Thank you, your question has arrived.', askSend: 'Send question',
-    picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off',
+    picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off', kombi: ' incl. 10% bundle discount',
     fbOk: 'Thank you! Your feedback has arrived.', fbSend: 'Send', halt: 'Pause motion',
     qcRun: 'Checking', qcGo: 'Check now', qcPassed: 'passed', qcMissing: 'missing',
     qcErr: { url: 'Please enter an address like your-company.com.', dns: 'This address doesn’t seem to exist.', unreachable: 'The website did not respond. Is the address correct?', rate: 'Too many checks in a short time. Please try again later.', server: 'The check is not available right now. Please send an inquiry instead.' },
@@ -33,7 +34,7 @@
     okText: 'Sie bekommen gleich eine Bestätigung per E-Mail. Ich antworte Ihnen persönlich, in der Regel innerhalb von 24 Stunden an Werktagen.',
     reqSel: 'Zusammenstellung anfragen', reqCheck: 'Kostenlosen Check anfordern', freeNote: 'Der Check ist kostenlos und unverbindlich. Für einen Preis fügen Sie Bausteine hinzu.',
     askOk: 'Danke, Ihre Frage ist angekommen.', askSend: 'Frage senden',
-    picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig',
+    picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig', kombi: ' inkl. 10 % Kombi-Rabatt',
     fbOk: 'Danke! Ihr Feedback ist angekommen.', fbSend: 'Senden', halt: 'Bewegung anhalten',
     qcRun: 'Wird geprüft', qcGo: 'Jetzt prüfen', qcPassed: 'bestanden', qcMissing: 'fehlt',
     qcErr: { url: 'Bitte geben Sie eine Adresse wie ihre-firma.de ein.', dns: 'Diese Adresse scheint es nicht zu geben.', unreachable: 'Die Website hat nicht geantwortet. Stimmt die Adresse?', rate: 'Zu viele Checks in kurzer Zeit. Bitte versuchen Sie es später noch einmal.', server: 'Der Check ist gerade nicht verfügbar. Senden Sie mir gern eine Anfrage.' },
@@ -96,8 +97,29 @@
   var header = document.querySelector('.top');
   function go(el) { var off = -((header ? header.offsetHeight : 0) + 12); if (lenis) lenis.scrollTo(el, { offset: off, duration: 1.1 }); else window.scrollTo({ top: el.getBoundingClientRect().top + scrollY + off, behavior: reduce ? 'auto' : 'smooth' }); }
   var nav = $('nav'), menuBtn = $('menu-btn');
-  function closeMenu() { if (!nav) return; nav.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); }
-  if (menuBtn) menuBtn.addEventListener('click', function () { var o = nav.classList.toggle('open'); menuBtn.setAttribute('aria-expanded', String(o)); });
+  /* Version 29: das Menü fährt aus und wieder ein (Höhe, Weichzeichnung, Einträge nacheinander) statt aufzupoppen */
+  if (nav) nav.querySelectorAll('a').forEach(function (a, i) { a.style.setProperty('--i', String(i)); });
+  function closeMenu() {
+    if (!nav || !nav.classList.contains('open') || nav.classList.contains('closing')) return;
+    menuBtn.setAttribute('aria-expanded', 'false');
+    if (reduce || !nav.animate) { nav.classList.remove('open'); return; }
+    nav.classList.add('closing');
+    var h = nav.getBoundingClientRect().height;
+    var an = nav.animate([{ height: h + 'px' }, { height: '0px' }], { duration: 240, easing: 'cubic-bezier(.4,0,.6,1)' });
+    an.onfinish = an.oncancel = function () { nav.classList.remove('open', 'closing'); };
+  }
+  function openMenu() {
+    if (!nav) return;
+    nav.classList.remove('closing');
+    nav.classList.add('open');
+    menuBtn.setAttribute('aria-expanded', 'true');
+    if (reduce || !nav.animate) return;
+    var h = nav.getBoundingClientRect().height;
+    nav.animate([{ height: '0px' }, { height: h + 'px' }], { duration: 400, easing: 'cubic-bezier(.05,.7,.1,1)' });
+  }
+  if (menuBtn) menuBtn.addEventListener('click', function () { if (nav.classList.contains('open') && !nav.classList.contains('closing')) closeMenu(); else openMenu(); });
+  /* Klick neben das Menü schließt es */
+  document.addEventListener('pointerdown', function (e) { if (nav && nav.classList.contains('open') && !nav.contains(e.target) && !menuBtn.contains(e.target)) closeMenu(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeMenu(); closeFb(); } });
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
@@ -108,9 +130,13 @@
   });
   var top = $('to-top');
   if (top) top.addEventListener('click', function () { if (lenis) lenis.scrollTo(0, { duration: 1.2 }); else window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); });
-  /* Version 28: der große Schriftzug in der Fußzeile führt ganz nach oben, danach Fokus aufs Logo */
+  /* Version 29: der große Schriftzug in der Fußzeile führt auf die Startseite (oben). Steht man schon dort,
+     wird nur nach oben gescrollt, danach Fokus aufs Logo. */
   document.querySelectorAll('[data-nach-oben]').forEach(function (a) {
     a.addEventListener('click', function (e) {
+      var home = EN ? '/en/' : '/';
+      var here = location.pathname.replace(/\/(start|index)\.html$/, '/');
+      if (here !== home) return; /* normaler Seitenwechsel auf die Startseite */
       e.preventDefault();
       if (lenis) lenis.scrollTo(0, { duration: 1.4 }); else window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
       var logo = document.querySelector('.top .logo');
@@ -224,6 +250,7 @@
     note: 'Pilot prices for the base packages, no VAT charged (§ 19 UStG).',
     noteX: ' I clarify items by arrangement with you in a short call.',
     noteAb: ' Where it says “from”, the price depends on the scope, and I’ll tell you before I start.',
+    kombi: 'Bundle discount website + automation (10%)',
     je: function (n, p) { return n + ' × ' + p; }
   } : {
     ab: 'ab ', once: 'Einmalig', monthly: 'Monatlich', plus: ', dazu Leistungen nach Absprache',
@@ -232,6 +259,7 @@
     note: 'Pilotpreise für die Grundpakete, alle Preise ohne Umsatzsteuer (§ 19 UStG).',
     noteX: ' Punkte nach Absprache kläre ich mit Ihnen im Gespräch.',
     noteAb: ' Bei „ab“ hängt der Preis vom Umfang ab, ich nenne ihn Ihnen vorher.',
+    kombi: 'Kombi-Rabatt Website + Automatik (10 %)',
     je: function (n, p) { return n + ' × ' + p; }
   };
   var B = EN ? { web: ['Website in 7 days', 390], auto: ['Inquiry automation', 290], survey: ['Customer survey', 190], check: ['Website check', 0] }
@@ -261,6 +289,8 @@
       lines.push([name, preis]);
     });
     if (sel.wish) { lines.push([TB.wish(sel.wish), T.arr]); offen++; }
+    /* Version 29: Kombi-Rabatt, wenn Website und Anfrage-Automatik zusammen gewählt sind */
+    if (seen['b:web'] && seen['b:auto']) { var rab = Math.round((B.web[1] + B.auto[1]) * 0.1); once -= rab; lines.push([TB.kombi, '−' + T.eur(rab)]); }
     var text = lines.map(function (l) { return '- ' + l[0] + ', ' + l[1]; });
     text.push(TB.once + ' ' + (ab ? TB.ab : '') + T.eur(once) + (offen ? TB.plus : ''), TB.monthly + ' ' + T.eur(month), TB.start[sel.w] || TB.start.asap);
     return { once: once, month: month, lines: lines, extras: offen, ab: ab, text: text.join('\n') };
@@ -380,10 +410,13 @@
       });
       document.querySelectorAll('.tr[data-row]').forEach(function (row) { row.classList.toggle('is-picked', !!row.querySelector('[data-pick][aria-pressed="true"]')); });
       $('pb-count').textContent = T.picked(n);
-      var parts = []; if (once || !tier) parts.push(T.eur(once) + T.oneOff); if (tier) parts.push(T.eur(tierPrice[tier]) + T.perMonth);
+      /* Version 29: Kombi-Rabatt – Website und Anfrage-Automatik zusammen 10 % günstiger */
+      var kombi = picks.hasOwnProperty('website') && picks.hasOwnProperty('automatik');
+      var rabatt = kombi ? Math.round((picks.website + picks.automatik) * 0.1) : 0;
+      var parts = []; if (once || !tier) parts.push(T.eur(once - rabatt) + T.oneOff + (kombi ? T.kombi : '')); if (tier) parts.push(T.eur(tierPrice[tier]) + T.perMonth);
       $('pb-sum').textContent = parts.join(' · ');
       var q = keys.slice(); if (tier) q.push('betreuung');
-      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : ''));
+      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : '') + (kombi ? '&kombi=1' : ''));
       bar.classList.toggle('show', n > 0); bar.setAttribute('aria-hidden', String(n === 0));
       [].forEach.call(bar.querySelectorAll('a,button'), function (x) { x.tabIndex = n > 0 ? 0 : -1; });
       document.body.classList.toggle('has-pickbar', n > 0);
@@ -409,6 +442,7 @@
     var want = (q.get('pakete') || '').split(',');
     if (q.get('anliegen')) want.push(q.get('anliegen'));
     want.forEach(function (v) { v = (v || '').replace(/[^a-z]/g, ''); var el = v && form.querySelector('input[name="pakete[]"][value="' + v + '"]'); if (el) el.checked = true; });
+    if (q.get('kombi') === '1') { var kb = document.createElement('input'); kb.type = 'hidden'; kb.name = 'kombi'; kb.value = '1'; form.appendChild(kb); }
     if (/^[SML]$/.test(q.get('stufe') || '')) { var tr = form.querySelector('input[name="betreuung_stufe"][value="' + q.get('stufe') + '"]'); if (tr) tr.checked = true; }
     if (q.get('url')) $('f-url').value = q.get('url').slice(0, 200);
     if (q.get('anliegen') === 'individuell' && (q.get('b') || q.get('c'))) {

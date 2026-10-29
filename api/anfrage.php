@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 12, 24.10.2026)
+/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 29, 29.10.2026)
+   Version 29: unverbindliche Preisübersicht (Angebot) in der Bestätigung, an info@ und an n8n (Leads), Kombi-Rabatt.
    Schickt die Nachricht an info@ und eine Bestätigung in der Sprache der Seite an den Absender. */
 declare(strict_types=1);
 define('LD', 1);
@@ -39,6 +40,9 @@ if (is_array($raw)) foreach ($raw as $v) if (is_string($v) && isset($L[$v]) && !
 $legacy = preg_replace('/[^a-z-]/', '', ld_post('anliegen_alt', 30)) ?? '';
 if (!$sel && isset($L[$legacy])) $sel[] = $legacy;
 $tier = ld_post('betreuung_stufe', 1); if (!isset($TIERS[$tier])) $tier = 'S';
+$kombi = ld_post('kombi', 1) === '1';
+/* Preise der Grundpakete (Pilotpreis / Normalpreis), für die unverbindliche Preisübersicht */
+$PREIS = ['website' => [390, 790], 'automatik' => [290, 590], 'umfrage' => [190, 290]];
 
 $name    = ld_line(ld_post('name', 100));
 $company = ld_line(ld_post('firma', 120));
@@ -80,6 +84,44 @@ $fmtDate = function (DateTime $d) use ($de) {
 };
 $terminText = $termin ? $fmtDate($termin['dt']) . ', ' . $SLOTS[$termin['slot']] . ', ' . $ARTS[$termin['art']] : '';
 
+/* ---------- Unverbindliche Preisübersicht (Angebot) aus der Auswahl ---------- */
+$angebot = null;
+$posten = [];
+$einmalig = 0; $monatlich = 0;
+foreach ($sel as $k) {
+  if (isset($PREIS[$k])) { $posten[] = [preg_replace('/ \(.*\)$/', '', $L[$k][0]), $PREIS[$k][0], $PREIS[$k][1], 'einmalig']; $einmalig += $PREIS[$k][0]; }
+  if ($k === 'betreuung') { $posten[] = [$L[$k][0] . ' ' . $tier, $TIERS[$tier], $TIERS[$tier], 'monat']; $monatlich += $TIERS[$tier]; }
+}
+$kombiOk = $kombi && in_array('website', $sel, true) && in_array('automatik', $sel, true);
+if (!$kombiOk && in_array('website', $sel, true) && in_array('automatik', $sel, true)) $kombiOk = true; // Kombi gilt automatisch
+$rabatt = $kombiOk ? (int)round(($PREIS['website'][0] + $PREIS['automatik'][0]) * 0.1) : 0;
+if ($posten && $kind === 'anfrage') {
+  $eur = function (int $n) use ($de) { return $de ? number_format($n, 0, ',', '.') . ' €' : '€' . number_format($n, 0, '.', ','); };
+  $lines = [];
+  foreach ($posten as [$n, $pp, $np, $art]) {
+    $lines[] = str_pad(($art === 'monat' ? $n . ($de ? ' (monatlich)' : ' (per month)') : $n), 44) . str_pad($eur($pp), 10, ' ', STR_PAD_LEFT);
+  }
+  if ($rabatt) $lines[] = str_pad($de ? 'Kombi-Rabatt Website + Automatik (10 %)' : 'Bundle discount website + automation (10%)', 44) . str_pad('-' . $eur($rabatt), 10, ' ', STR_PAD_LEFT);
+  $sumOnce = $einmalig - $rabatt;
+  $angebotText = implode("\n", $lines) . "\n" . str_repeat('-', 54) . "\n";
+  if ($einmalig) $angebotText .= str_pad($de ? 'Einmalig' : 'One-off', 44) . str_pad($eur($sumOnce), 10, ' ', STR_PAD_LEFT) . "\n";
+  if ($monatlich) $angebotText .= str_pad($de ? 'Monatlich, monatlich kündbar' : 'Monthly, cancel any month', 44) . str_pad($eur($monatlich), 10, ' ', STR_PAD_LEFT) . "\n";
+  $angebotText .= $de ? 'Pilotpreise für die ersten drei Kunden mit Referenz, ohne Umsatzsteuer (§ 19 UStG). Unverbindlich, gültig 14 Tage; das verbindliche Angebot bekommen Sie nach unserem Gespräch als PDF.'
+                      : 'Pilot prices for the first three clients who allow a reference, no VAT charged (§ 19 UStG). Non-binding, valid for 14 days; you receive the binding quote as a PDF after our call.';
+  $rowsHtml = '';
+  foreach ($posten as [$n, $pp, $np, $art]) {
+    $rowsHtml .= '<tr><td style="padding:8px 0;border-bottom:1px solid #dde2df">' . ld_h($n) . ($art === 'monat' ? '<br><span style="color:#4b585a;font-size:13px">' . ($de ? 'monatlich, jederzeit kündbar' : 'per month, cancel any time') . '</span>' : ($pp < $np ? '<br><span style="color:#4b585a;font-size:13px">' . ($de ? 'Pilotpreis, Normalpreis ' : 'pilot price, regular ') . $eur($np) . '</span>' : '')) . '</td>'
+              . '<td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;white-space:nowrap">' . $eur($pp) . ($art === 'monat' ? ($de ? '/Monat' : '/month') : '') . '</td></tr>';
+  }
+  if ($rabatt) $rowsHtml .= '<tr><td style="padding:8px 0;border-bottom:1px solid #dde2df">' . ($de ? 'Kombi-Rabatt Website + Anfrage-Automatik (10 %)' : 'Bundle discount website + inquiry automation (10%)') . '</td><td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;color:#0b6e69;white-space:nowrap">&minus;' . $eur($rabatt) . '</td></tr>';
+  if ($einmalig) $rowsHtml .= '<tr><td style="padding:10px 0 4px;font-weight:bold">' . ($de ? 'Einmalig' : 'One-off') . '</td><td style="padding:10px 0 4px;text-align:right;font-weight:bold;white-space:nowrap">' . $eur($sumOnce) . '</td></tr>';
+  if ($monatlich) $rowsHtml .= '<tr><td style="padding:4px 0;font-weight:bold">' . ($de ? 'Monatlich' : 'Monthly') . '</td><td style="padding:4px 0;text-align:right;font-weight:bold;white-space:nowrap">' . $eur($monatlich) . ($de ? '/Monat' : '/month') . '</td></tr>';
+  $angebotHtml = '<h2 style="font-size:17px;margin:22px 0 6px">' . ($de ? 'Ihre unverbindliche Preisübersicht' : 'Your non-binding price overview') . '</h2>'
+               . '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:15px">' . $rowsHtml . '</table>'
+               . '<p style="margin:10px 0 0;color:#4b585a;font-size:13px">' . ($de ? 'Pilotpreise für die ersten drei Kunden, die eine Referenz erlauben. Alle Preise ohne Umsatzsteuer (§ 19 UStG). Unverbindlich, 14 Tage gültig. Das verbindliche Angebot erhalten Sie nach unserem Gespräch als PDF.' : 'Pilot prices for the first three clients who allow a reference. No VAT charged (§ 19 UStG). Non-binding, valid for 14 days. You receive the binding quote as a PDF after our call.') . '</p>';
+  $angebot = ['text' => $angebotText, 'html' => $angebotHtml, 'einmalig' => $sumOnce, 'monatlich' => $monatlich, 'rabatt' => $rabatt, 'posten' => count($posten)];
+}
+
 /* Website-Check automatisch mitprüfen */
 $check = null;
 $checkNote = '';
@@ -102,6 +144,7 @@ if ($phone !== '') $rows['Telefon'] = $phone;
 if ($url !== '') $rows['Website'] = $url;
 if ($checkNote !== '') $rows['Sofort-Check'] = $checkNote;
 if ($pkg !== '') $rows['Zusammenstellung'] = $pkg;
+if ($angebot) $rows['Preisübersicht'] = ($angebot['einmalig'] ? number_format($angebot['einmalig'], 0, ',', '.') . ' € einmalig' : '') . ($angebot['monatlich'] ? ($angebot['einmalig'] ? ' + ' : '') . $angebot['monatlich'] . ' €/Monat' : '') . ($angebot['rabatt'] ? ' (Kombi-Rabatt ' . $angebot['rabatt'] . ' € abgezogen)' : '') . ' – unverbindlich an den Kunden gesendet';
 if ($msg !== '') $rows[$kind === 'anfrage' ? 'Nachricht' : ($kind === 'frage' ? 'Frage' : 'Vorschlag')] = $msg;
 $rows['Sprache'] = strtoupper($lang);
 if ($page !== '') $rows['Gesendet von'] = $page;
@@ -110,7 +153,8 @@ $rows['Eingang'] = $when . ' · Einwilligung erteilt';
 $text = "Neue $kindDe über lou-digital.de\n\n";
 foreach ($rows as $k => $v) $text .= str_pad($k . ':', 18) . str_replace("\n", "\n" . str_repeat(' ', 18), $v) . "\n";
 if ($check) $text .= "\n" . ld_check_text($check, 'de');
-$extra = $check ? ld_check_html($check, 'de') : '';
+if ($angebot) $text .= "\nPreisübersicht an den Kunden:\n" . $angebot['text'] . "\n";
+$extra = ($angebot ? $angebot['html'] : '') . ($check ? ld_check_html($check, 'de') : '');
 if ($termin) {
   [$h0, $h1] = $SLOT_H[$termin['slot']];
   $start = (clone $termin['dt'])->setTime($h0, 0); $end = (clone $termin['dt'])->setTime($h1, 0);
@@ -142,14 +186,16 @@ if ($email !== '') {
     $crows = [];
     if ($kind === 'anfrage' && $labels) $crows[$de ? 'Ihre Auswahl' : 'Your selection'] = $topic;
     if ($termin) $crows[$de ? 'Terminwunsch' : 'Requested slot'] = $terminText;
+    if ($angebot) $ci .= '<p style="margin:14px 0 0">' . ($de ? 'Unten finden Sie schon eine unverbindliche Preisübersicht zu Ihrer Auswahl. Im Gespräch klären wir Umfang und Extras, danach bekommen Sie das verbindliche Angebot als PDF.' : 'Below you already find a non-binding price overview for your selection. In our call we settle scope and extras, then you receive the binding quote as a PDF.') . '</p>';
     if ($check) $ci .= '<p style="margin:14px 0 0">' . ($de ? 'Ihr Website-Check ist schon fertig, das Ergebnis finden Sie unten. Wenn Sie über die offenen Punkte sprechen möchten, antworten Sie einfach auf diese E-Mail.' : 'Your website check is already done, see the result below. If you’d like to talk about the open points, simply reply to this email.') . '</p>';
   }
   $ct = strip_tags(str_replace(['</p>', '<br>'], ["\n\n", "\n"], $ci));
   foreach ($crows as $k => $v) $ct .= "$k: $v\n";
+  if ($angebot) $ct .= "\n" . ($de ? 'Ihre unverbindliche Preisübersicht' : 'Your non-binding price overview') . "\n" . $angebot['text'] . "\n";
   if ($check) $ct .= "\n" . ld_check_text($check, $lang);
   $ct .= "\n" . ($de ? "Viele Grüße\nAdrian Semlinger\nLou Digital, Karlsruhe\n" : "Best regards\nAdrian Semlinger\nLou Digital, Karlsruhe\n") . LD_PHONE . "\n" . LD_SITE . "\n\n"
        . ($de ? 'PS: Diese E-Mail wurde automatisch versendet. Wenn Sie auf „Antworten“ klicken, geht Ihre Nachricht direkt an ' . LD_TO . '.' : 'PS: This email was sent automatically. If you click “Reply”, your message goes straight to ' . LD_TO . '.');
-  ld_send($email, $cs, html_entity_decode($ct, ENT_QUOTES, 'UTF-8'), ld_mail_html($lang, $cs, $ci, $crows, $check ? ld_check_html($check, $lang) : ''), LD_TO);
+  ld_send($email, $cs, html_entity_decode($ct, ENT_QUOTES, 'UTF-8'), ld_mail_html($lang, $cs, $ci, $crows, ($angebot ? $angebot['html'] : '') . ($check ? ld_check_html($check, $lang) : '')), LD_TO);
 }
 
 /* An n8n weiterreichen (Telegram-Meldung + Leads-Tabelle). Adresse steht in ld-private/n8n.php, nicht im Repo. */
@@ -159,7 +205,8 @@ if ($hook !== '' && function_exists('curl_init')) {
   curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 5, CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
     CURLOPT_POSTFIELDS => json_encode(['art' => $kind, 'auswahl' => $topic, 'termin' => $terminText, 'name' => $name, 'firma' => $company, 'email' => $email, 'telefon' => $phone,
       'website_url' => $url, 'check' => $check && !empty($check['ok']) ? $check['score'] . '/5' : '', 'zusammenstellung' => $pkg, 'nachricht' => $msg, 'sprache' => $lang,
-      'seite' => $page, 'zeit' => date('Y-m-d H:i'), 'quelle' => 'lou-digital.de'], JSON_UNESCAPED_UNICODE)]);
+      'seite' => $page, 'zeit' => date('Y-m-d H:i'), 'quelle' => 'lou-digital.de',
+      'angebot_einmalig' => $angebot ? $angebot['einmalig'] : '', 'angebot_monatlich' => $angebot ? $angebot['monatlich'] : '', 'angebot_rabatt' => $angebot ? $angebot['rabatt'] : '', 'angebot' => $angebot ? $angebot['text'] : '', 'status_vorschlag' => $angebot ? 'Angebot' : 'neu'], JSON_UNESCAPED_UNICODE)]);
   @curl_exec($ch); curl_close($ch);
 }
 

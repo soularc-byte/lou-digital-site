@@ -134,3 +134,44 @@ html:not(.js) .mehr-i, html:not(.js) .opt-i { display: none; }
   .haken li::before, .ja { forced-color-adjust: none; }
 }
 @media print { .opt-i, .mehr-i, .menge .mg { display: none; } .tr-mehr[hidden] { display: block !important; } }
+
+/* ===== Version 29 (29.10.2026): Rabatte und Kombi-Pakete, ohne Betreuung, Markteinordnung ===== */
+.preis-sec { padding-top: clamp(36px, 5vw, 64px); }
+.rab-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: clamp(24px, 3.5vw, 40px); align-items: stretch; }
+.rab { position: relative; display: grid; align-content: start; gap: 10px; padding: 22px 22px 24px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-card, 14px); transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease); }
+.rab:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: 0 16px 34px -22px rgba(17,25,27,.45); }
+.rab--top { background: var(--blk-ink, #11191b); color: #edf1ef; border-color: transparent; }
+.rab--top p, .rab--top .rab-p { color: #c9d3d0; }
+.rab--top .rab-p b, .rab--top h3 { color: #fff; }
+.rab--top .rab-tag { background: var(--signal); color: var(--on-signal); }
+.rab-tag { justify-self: start; font: 500 12px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; padding: 6px 9px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.rab h3 { font-size: 19px; line-height: 1.2; letter-spacing: -.015em; font-weight: 600; }
+.rab-p { font-size: 15px; line-height: 1.4; color: var(--ink-muted); }
+.rab-p b { font-size: 22px; font-weight: 600; color: var(--brand); letter-spacing: -.02em; }
+.rab p:not(.rab-p) { font-size: 15px; line-height: 1.5; color: var(--ink-muted); }
+.rab .btn, .rab .link { justify-self: start; margin-top: auto; }
+.ob-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: clamp(24px, 3.5vw, 40px); align-items: start; }
+.ob { padding: 22px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-card, 14px); }
+.ob h3 { font-size: 15px; font-weight: 600; color: var(--ink-muted); margin: 0 0 14px; }
+.ob .haken li b { font-weight: 600; }
+.ob-liste li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.ob-liste li:last-child { border-bottom: 0; }
+.minus { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.minus li { position: relative; padding-left: 30px; font-size: 15px; line-height: 1.45; color: var(--ink-muted); }
+.minus li b { color: var(--ink); font-weight: 600; }
+.minus li::before { content: "–"; position: absolute; left: 0; top: .02em; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line-strong); font: 500 14px/18px var(--font-mono); text-align: center; color: var(--ink-muted); }
+.mk-wrap { margin-top: clamp(24px, 3.5vw, 40px); overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-card, 14px); background: var(--raised); }
+.mk { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 15px; }
+.mk th, .mk td { padding: 13px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; line-height: 1.4; }
+.mk thead th { font: 600 13px/1.2 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); background: var(--surface); }
+.mk tbody th { font-weight: 600; }
+.mk td { font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mk tbody tr:last-child th, .mk tbody tr:last-child td { border-bottom: 0; }
+.mk td:last-child { background: rgba(220,239,235,.5); color: var(--ink); }
+.mk td:last-child b { color: var(--brand); }
+.mk-why { margin-top: 18px; max-width: 70ch; font-size: 16px; line-height: 1.55; }
+.mk-quellen { margin-top: 12px; line-height: 1.7; }
+.mk-quellen a { color: var(--ink-muted); text-decoration: underline; text-underline-offset: 3px; }
+.mk-quellen a:hover { color: var(--brand); }
+@media (max-width: 980px) { .rab-grid, .ob-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .rab-grid, .ob-grid { grid-template-columns: minmax(0, 1fr); } .rab, .ob { padding: 18px; } }
