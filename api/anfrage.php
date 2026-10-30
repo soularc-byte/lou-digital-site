@@ -214,7 +214,7 @@ if (!ld_send(LD_TO, $subject, $text, $htmlIn, $email)) ld_json(500, ['ok' => fal
 /* ---------- Bestätigung an den Absender, in der Sprache der Seite ---------- */
 /* Version 33: keine Bestätigungen in Massen an fremde Adressen (Schutz vor Missbrauch als Mail-Schleuder) */
 $bestaetigen = $email !== '' && ld_rate_key('rcpt|' . strtolower($email), 2, 86400) && ld_rate_key('rcpt_gesamt', 40, 3600);
-$anrede = preg_match('/^[\p{L}][\p{L} .\'-]{1,59}$/u', $name) ? $name : '';
+$anrede = (mb_strlen($name) <= 40 && preg_match('/^[\p{L}][\p{L}\'-]*( [\p{L}][\p{L}\'-]*){0,3}$/u', $name)) ? $name : '';   // höchstens vier Wörter, keine Ziffern, Punkte oder Links
 if ($bestaetigen) {
   $first = $name !== '' ? $name : ($de ? 'und danke' : 'and thank you');
   if ($kind === 'feedback') {
