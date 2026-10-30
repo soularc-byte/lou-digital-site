@@ -193,7 +193,8 @@ function ld_guthaben(int $kunde): int { $r = pd_row('SELECT COALESCE(SUM(betrag)
 
 /* ---------- Auftrag aus einer Website-Anfrage speichern ---------- */
 function ld_auftrag_anlegen(array $d): int {
-  $k = pd_row('SELECT id FROM kunden WHERE email = ?', [strtolower($d['email'])]);
+  /* Version 33: Web-Anfragen werden keinem Konto automatisch zugeordnet (jeder könnte eine fremde Adresse eintragen); die Zuordnung macht Adrian im Büro */
+  $k = null;
   pd_q('INSERT INTO auftraege (kunde_id, email, name, firma, telefon, pakete, stufe, zahlung, pilot, aktion, einmalig, monatlich, rabatt, code, code_art, status, nachricht, sprache, angelegt, aktualisiert)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [$k ? (int)$k['id'] : 0, strtolower($d['email']), $d['name'], $d['firma'], $d['telefon'], implode(',', $d['pakete']), $d['stufe'], $d['zahlung'], (int)$d['pilot'], (string)($d['aktion'] ?? ''), (int)$d['einmalig'], (int)$d['monatlich'], (int)$d['rabatt'],

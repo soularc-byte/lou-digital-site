@@ -13,6 +13,7 @@ const P_BASE = '/portal';
 const P_COOKIE = 'ldp';
 const P_IDLE = 12 * 3600;     // Sitzung endet nach 12 h ohne Aktivität
 const P_MAX = 30 * 86400;     // und spätestens nach 30 Tagen
+const P_DUMMY_HASH = '$2y$10$abcdefghijklmnopqrstuuJ6m4h0C8R0wD0bQyq3H1o0v3jzW2bK.';   // Version 33: Vergleichshash für unbekannte Konten (gleiche Dauer)
 
 /* ---------- Pfad ---------- */
 $path = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
@@ -49,9 +50,9 @@ $zfaOffen = $me && (int)$me['totp_aktiv'] === 1 && (int)$sess['zfa'] === 0;
 $pwOffen = $me && (int)$me['pass_wechsel'] === 1;
 
 /* ---------- Helfer ---------- */
-function p_cookie(string $v): void { setcookie(P_COOKIE, $v, ['expires' => $v === '' ? time() - 3600 : time() + P_MAX, 'path' => P_BASE, 'secure' => (($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'), 'httponly' => true, 'samesite' => 'Strict']); }
+function p_cookie(string $v): void { setcookie(P_COOKIE, $v, ['expires' => $v === '' ? time() - 3600 : time() + P_MAX, 'path' => P_BASE, 'secure' => true, 'httponly' => true, 'samesite' => 'Strict']); }   // Version 33: Cookie immer nur über https
 function p_go(string $to): void { header('Location: ' . $to, true, 303); exit; }
-function p_flash(string $msg, string $art = 'ok'): void { setcookie('ldp_m', rawurlencode($art . '|' . mb_substr($msg, 0, 300)), ['expires' => time() + 60, 'path' => P_BASE, 'httponly' => true, 'samesite' => 'Strict', 'secure' => (($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')]); }
+function p_flash(string $msg, string $art = 'ok'): void { setcookie('ldp_m', rawurlencode($art . '|' . mb_substr($msg, 0, 300)), ['expires' => time() + 60, 'path' => P_BASE, 'httponly' => true, 'samesite' => 'Strict', 'secure' => true]); }
 function p_flash_lesen(): string {
   $m = (string)($_COOKIE['ldp_m'] ?? ''); if ($m === '') return '';
   setcookie('ldp_m', '', ['expires' => time() - 3600, 'path' => P_BASE]);
@@ -122,16 +123,18 @@ if ($route === 'login' || ($route === '' && !$me)) {
     else {
       $k = pd_row('SELECT * FROM kunden WHERE email = ? AND aktiv = 1', [$email]);
       usleep(random_int(80000, 200000));
+      /* Version 33: Passwortprüfung dauert immer gleich lang, auch bei unbekannter Adresse (kein Zeitunterschied, an dem man Konten erkennt) */
+      $pwOk = password_verify($pw, ($k && $k['pass_hash'] !== '') ? $k['pass_hash'] : P_DUMMY_HASH);
       /* Version 32: Sperre je Konto (nicht nur je IP): nach 8 Fehlversuchen in 15 Minuten wird das Konto vorübergehend abgewiesen,
          mit derselben Meldung wie bei falschem Passwort, damit sich nicht erkennen lässt, welche Konten es gibt */
       $gesperrt = $k && (int)(pd_row("SELECT COUNT(*) c FROM protokoll WHERE kunde_id = ? AND aktion = 'login_fehl' AND zeit >= ?", [(int)$k['id'], date('Y-m-d H:i:s', time() - 900)])['c'] ?? 0) >= 8;
-      if ($k && !$gesperrt && $k['pass_hash'] !== '' && password_verify($pw, $k['pass_hash'])) {
+      if ($k && !$gesperrt && $k['pass_hash'] !== '' && $pwOk) {
         p_login($k, (int)$k['totp_aktiv'] === 1);
         pd_log((int)$k['id'], 'login', '');
         p_go(P_BASE . ((int)$k['totp_aktiv'] === 1 ? '/zfa' : ((int)$k['pass_wechsel'] === 1 ? '/passwort' : '')));
       }
       $err = 'E-Mail oder Passwort stimmen nicht.';
-      if ($k) pd_log((int)$k['id'], 'login_fehl', $gesperrt ? 'Konto vorübergehend gesperrt' : '');
+      if ($k && !$gesperrt) pd_log((int)$k['id'], 'login_fehl', '');   // Version 33: eine laufende Sperre wird durch weitere Versuche nicht verlängert
     }
   }
   $hatAdmin = (bool)pd_row("SELECT 1 FROM kunden WHERE rolle = 'admin' LIMIT 1");
@@ -159,7 +162,7 @@ if ($route === 'vergessen') {
 }
 
 if ($route === 'reset') {
-  $t = (string)($_GET['t'] ?? $_POST['t'] ?? '');
+  $t = (ld_get('t') !== '' ? ld_get('t') : p_str('t'));
   $tk = ld_token_lesen($t, 'reset', false);
   if (!$tk) out('Link ungültig', '<section class="p-card p-card--narrow"><h1>Link ungültig oder abgelaufen</h1><p><a href="' . P_BASE . '/vergessen">Neuen Link anfordern</a></p></section>');
   $err = '';
@@ -182,7 +185,7 @@ if ($route === 'reset') {
 if ($route === 'einrichten') {
   /* Erster Admin: nur, wenn es noch keinen gibt. Der Link geht an info@lou-digital.de, also nur an den Inhaber. */
   if (pd_row("SELECT 1 FROM kunden WHERE rolle = 'admin' LIMIT 1")) p_go(P_BASE . '/login');
-  $t = (string)($_GET['t'] ?? $_POST['t'] ?? '');
+  $t = (ld_get('t') !== '' ? ld_get('t') : p_str('t'));
   if ($t !== '') {
     $tk = ld_token_lesen($t, 'einrichten', false);
     if (!$tk) out('Link ungültig', '<section class="p-card p-card--narrow"><h1>Link ungültig oder abgelaufen</h1><p><a href="' . P_BASE . '/einrichten">Neu anfordern</a></p></section>');
@@ -214,9 +217,16 @@ if ($zfaOffen) {
   if ($route !== 'zfa') p_go(P_BASE . '/zfa');
   $err = '';
   if ($post) {
-    if (!ld_rate('pzfa', 30)) $err = 'Zu viele Versuche.';
+    /* Version 33: nach 5 falschen Codes endet die Sitzung (neu anmelden mit Passwort), die Sperre je Konto gilt auch hier */
+    $zfaFehl = (int)(pd_row("SELECT COUNT(*) c FROM protokoll WHERE kunde_id = ? AND aktion = 'login_fehl' AND zeit >= ?", [(int)$me['id'], date('Y-m-d H:i:s', time() - 900)])['c'] ?? 0);
+    if (!ld_rate('pzfa', 30) || $zfaFehl >= 8) $err = 'Zu viele Versuche. Bitte in 15 Minuten noch einmal.';
     elseif (ld_totp_login((int)$me['id'], (string)$me['totp_secret'], ld_post('code', 10))) { pd_q('UPDATE sitzungen SET zfa = 1 WHERE id = ?', [$sess['id']]); p_go(P_BASE . ($pwOffen ? '/passwort' : '')); }
-    else { pd_log((int)$me['id'], 'login_fehl', '2FA'); $err = 'Der Code stimmt nicht oder wurde schon benutzt. Bitte den nächsten Code aus der Authenticator-App eingeben.'; }
+    else {
+      pd_log((int)$me['id'], 'login_fehl', '2FA');
+      $sessFehl = (int)(pd_row("SELECT COUNT(*) c FROM protokoll WHERE kunde_id = ? AND aktion = 'login_fehl' AND details = '2FA' AND zeit >= ?", [(int)$me['id'], $sess['angelegt'] ?? date('Y-m-d H:i:s', time() - 600)])['c'] ?? 0);
+      if ($sessFehl >= 5) { pd_q('DELETE FROM sitzungen WHERE id = ?', [$sess['id']]); p_cookie(''); p_flash('Zu viele falsche Codes. Bitte neu anmelden.', 'warn'); p_go(P_BASE . '/login'); }
+      $err = 'Der Code stimmt nicht oder wurde schon benutzt. Bitte den nächsten Code aus der Authenticator-App eingeben.';
+    }
   }
   out('Zweiter Faktor', '<section class="p-card p-card--narrow"><h1>Zweiter Faktor</h1><p class="p-lead">Bitte den 6-stelligen Code aus Ihrer Authenticator-App eingeben.</p>' . ($err ? '<div class="p-flash p-flash--warn">' . h($err) . '</div>' : '')
     . '<form method="post" class="p-form">' . p_form($csrf) . '<label>Code<input name="code" inputmode="numeric" pattern="[0-9 ]*" autocomplete="one-time-code" maxlength="7" required autofocus></label><button class="btn btn--primary" type="submit">Bestätigen</button></form>'
@@ -245,7 +255,7 @@ if ($pwOffen) {
 
 /* ---------- Bestätigungs-Links (Passwortwechsel, E-Mail-Wechsel) ---------- */
 if ($route === 'bestaetigen') {
-  $t = (string)($_GET['t'] ?? ''); $z = preg_replace('/[^a-z_]/', '', (string)($_GET['z'] ?? '')) ?? '';
+  $t = ld_get('t'); $z = preg_replace('/[^a-z_]/', '', ld_get('z')) ?? '';
   $tk = in_array($z, ['pw', 'email'], true) ? ld_token_lesen($t, $z, true) : null;
   if (!$tk || (int)$tk['kunde_id'] !== (int)$me['id']) out('Link ungültig', '<section class="p-card p-card--narrow"><h1>Link ungültig oder abgelaufen</h1><p>Bitte den Vorgang unter <a href="' . P_BASE . '/einstellungen">Einstellungen</a> neu starten.</p></section>');
   if ($z === 'pw') { pd_q('UPDATE kunden SET pass_hash = ? WHERE id = ?', [$tk['daten'], (int)$me['id']]); pd_q('DELETE FROM sitzungen WHERE kunde_id = ? AND id <> ?', [(int)$me['id'], $sess['id']]); pd_log((int)$me['id'], 'pw_wechsel', ''); p_mail($me, 'Passwort geändert – Lou Digital Portal', '<p style="margin:0">Ihr Passwort wurde soeben geändert. Falls Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail.</p>'); p_flash('Neues Passwort bestätigt. Andere Geräte wurden abgemeldet.'); }

@@ -11,7 +11,7 @@ $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
 if ($ua === '' || preg_match('/bot|crawl|spider|slurp|headless|lighthouse|preview|monitor|curl|wget|python|playwright/i', $ua)) { http_response_code(204); exit; }
 $raw = file_get_contents('php://input', false, null, 0, 2048) ?: '';
 $d = json_decode($raw, true);
-if (!is_array($d)) { http_response_code(204); exit; }
+if (!is_array($d) || !ld_rate('t', 300)) { http_response_code(204); exit; }   // Version 33: Begrenzung je Besucher
 $t = (string)($d['t'] ?? '');
 if (!in_array($t, ['pv', 'c', 's', 'f', 'k'], true)) { http_response_code(204); exit; }
 $clean = function ($v, int $max) { $v = is_scalar($v) ? (string)$v : ''; $v = preg_replace('/[^\P{C}]/u', '', $v) ?? ''; return mb_substr(trim($v), 0, $max); };

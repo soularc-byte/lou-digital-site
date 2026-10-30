@@ -16,7 +16,7 @@ $projekte = pd_all('SELECT * FROM projekte WHERE kunde_id = ? ORDER BY id DESC',
 $website = $me['website'] !== '' ? $me['website'] : '';
 $offen = p_tickets_zaehlen($kid);
 $guthaben = ld_guthaben($kid);
-$auftraege = pd_all('SELECT * FROM auftraege WHERE kunde_id = ? OR email = ? ORDER BY id DESC', [$kid, $me['email']]);
+$auftraege = pd_all('SELECT * FROM auftraege WHERE kunde_id = ? ORDER BY id DESC', [$kid]);   // Version 33: nur Aufträge, die Adrian diesem Konto zugeordnet hat
 
 /* Minuten-Monat zurücksetzen */
 if ($me['stufe'] !== '' && $me['minuten_monat'] !== date('Y-m')) { pd_q('UPDATE kunden SET minuten_genutzt = 0, minuten_monat = ? WHERE id = ?', [date('Y-m'), $kid]); $me['minuten_genutzt'] = 0; }
@@ -181,7 +181,7 @@ case 'nachrichten':
     p_go(P_BASE . '/nachrichten');
   }
   $ts = pd_all("SELECT t.*, (SELECT COUNT(*) FROM nachrichten n WHERE n.ticket_id = t.id) anz FROM tickets t WHERE kunde_id = ? AND art <> 'bot' ORDER BY CASE status WHEN 'erledigt' THEN 1 ELSE 0 END, aktualisiert DESC", [$kid]);
-  $neu = (string)($_GET['neu'] ?? ''); $vb = ld_line((string)($_GET['betreff'] ?? ''));
+  $neu = ld_get('neu'); $vb = ld_line(ld_get('betreff'));
   $o = '<h1 class="p-h1">Nachrichten</h1><p class="p-lead">Änderungswünsche, Fragen und Support. Jede Nachricht landet sofort bei mir.</p>'
      . '<section class="p-card" id="neu"><h2>Neue Nachricht</h2><form method="post" class="p-form p-form--wide">' . p_form($csrf) . '<div class="p-row"><label>Art<select name="art">';
   foreach ($TICKET_ART as $k => $v) $o .= '<option value="' . $k . '"' . ($neu === $k ? ' selected' : '') . '>' . $v . '</option>';
@@ -259,7 +259,7 @@ case 'empfehlen':
 
 /* ===================== Berichte ===================== */
 case 'berichte':
-  $monat = preg_match('/^\d{4}-\d{2}$/', (string)($_GET['m'] ?? '')) ? (string)$_GET['m'] : date('Y-m');
+  $monat = preg_match('/^\d{4}-\d{2}$/', ld_get('m')) ? ld_get('m') : date('Y-m');
   if (isset($_GET['pdf'])) { $pdf = ld_bericht_pdf($me, $monat); header('Content-Type: application/pdf'); header('Content-Disposition: inline; filename="monatsbericht-' . $monat . '.pdf"'); header('Content-Length: ' . strlen($pdf)); echo $pdf; exit; }
   $von = $monat . '-01 00:00:00'; $bis = date('Y-m-t 23:59:59', strtotime($von));
   $pr = pd_row('SELECT COUNT(*) n, SUM(ok) o, AVG(ms) ms, MAX(ms) mx FROM pruefungen WHERE kunde_id = ? AND zeit BETWEEN ? AND ?', [$kid, $von, $bis]);
@@ -309,7 +309,7 @@ case 'einstellungen':
     p_go(P_BASE . '/einstellungen');
   }
   if ($post && $tab === 'zfa') {
-    if (isset($_POST['start'])) { $sec = ld_b32(random_bytes(20)); pd_q('UPDATE kunden SET totp_secret = ?, totp_aktiv = 0 WHERE id = ?', [$sec, $kid]); p_go(P_BASE . '/einstellungen#zfa'); }
+    if (isset($_POST['start'])) { if ((int)$me['totp_aktiv'] === 1) { p_flash('Der zweite Faktor ist schon aktiv. Zum Neueinrichten erst ausschalten (Passwort und Code).', 'warn'); p_go(P_BASE . '/einstellungen#zfa'); } $sec = ld_b32(random_bytes(20)); pd_q('UPDATE kunden SET totp_secret = ?, totp_aktiv = 0 WHERE id = ?', [$sec, $kid]); p_go(P_BASE . '/einstellungen#zfa'); }   // Version 33: aktive 2FA lässt sich nicht still zurücksetzen
     if (isset($_POST['aktivieren'])) { if ($me['totp_secret'] !== '' && ld_totp_login($kid, $me['totp_secret'], ld_post('code', 10))) { pd_q('UPDATE kunden SET totp_aktiv = 1 WHERE id = ?', [$kid]); pd_q('UPDATE sitzungen SET zfa = 1 WHERE id = ?', [$sess['id']]); pd_log($kid, '2fa_an', ''); p_mail($me, 'Zweiter Faktor eingeschaltet – Lou Digital Portal', '<p style="margin:0">Für Ihr Kundenportal ist jetzt der zweite Faktor (Authenticator-App) aktiv. Falls Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail.</p>'); p_flash('Zweiter Faktor ist aktiv.'); } else p_flash('Der Code stimmt nicht. Bitte den aktuellen Code aus der App eingeben.', 'warn'); }
     if (isset($_POST['aus'])) { if (password_verify(p_str('pw'), $me['pass_hash']) && ld_totp_login($kid, $me['totp_secret'], ld_post('code', 10))) { pd_q("UPDATE kunden SET totp_secret = '', totp_aktiv = 0 WHERE id = ?", [$kid]); pd_log($kid, '2fa_aus', ''); p_mail($me, 'Zweiter Faktor ausgeschaltet – Lou Digital Portal', '<p style="margin:0">Der zweite Faktor für Ihr Kundenportal wurde ausgeschaltet. Falls Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail.</p>'); p_flash('Zweiter Faktor ausgeschaltet.'); } else p_flash('Passwort oder Code stimmen nicht.', 'warn'); }
     if (isset($_POST['abbrechen'])) { pd_q("UPDATE kunden SET totp_secret = '' WHERE id = ? AND totp_aktiv = 0", [$kid]); }

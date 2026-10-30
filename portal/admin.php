@@ -47,7 +47,7 @@ case '':
 
 /* ===================== Aufträge ===================== */
 case 'auftraege':
-  $f = preg_replace('/[^a-z]/', '', (string)($_GET['s'] ?? '')) ?? '';
+  $f = preg_replace('/[^a-z]/', '', ld_get('s')) ?? '';
   $rows = $f !== '' && isset(LD_STATUS[$f]) ? pd_all('SELECT * FROM auftraege WHERE status = ? ORDER BY id DESC', [$f]) : pd_all('SELECT * FROM auftraege ORDER BY id DESC LIMIT 200');
   $tabs = '<p class="p-tabs"><a href="' . P_BASE . '/admin/auftraege"' . ($f === '' ? ' class="on"' : '') . '>Alle</a>'; foreach (LD_STATUS as $k => $v) $tabs .= '<a href="' . P_BASE . '/admin/auftraege?s=' . $k . '"' . ($f === $k ? ' class="on"' : '') . '>' . $v . '</a>'; $tabs .= '</p>';
   $o = '<h1 class="p-h1">Aufträge</h1><p class="p-lead">Jede Anfrage mit Preisübersicht landet hier als Auftrag „Angebot“. Status „bezahlt“ verbraucht Pilotplatz und Codes und schreibt dem Werber die Gutschrift gut.</p>' . $tabs . '<section class="p-card">';
@@ -62,6 +62,7 @@ case 'auftrag':
     $st = p_str('status') !== '' ? p_str('status') : $a['status']; if (!isset(LD_STATUS[$st])) $st = $a['status'];
     $notiz = ld_post('notiz', 2000); $einmalig = max(0, (int)($_POST['einmalig'] ?? $a['einmalig'])); $monatlich = max(0, (int)($_POST['monatlich'] ?? $a['monatlich']));
     pd_q('UPDATE auftraege SET status = ?, notiz = ?, einmalig = ?, monatlich = ?, aktualisiert = ? WHERE id = ?', [$st, $notiz, $einmalig, $monatlich, pd_now(), (int)$a['id']]);
+    if ((int)$a['kunde_id'] === 0 && in_array($st, ['vertrag', 'bezahlt', 'laufend', 'fertig'], true)) pd_q('UPDATE auftraege SET kunde_id = COALESCE((SELECT id FROM kunden WHERE email = ? LIMIT 1), 0) WHERE id = ?', [strtolower($a['email']), (int)$a['id']]);   // Version 33: Zuordnung erst, wenn Adrian den Auftrag bestätigt
     $a = pd_row('SELECT * FROM auftraege WHERE id = ?', [(int)$a['id']]);
     if (in_array($st, ['bezahlt', 'laufend', 'fertig'], true) && !(int)$a['code_verbraucht']) { ld_code_verbrauchen($a); p_flash('Status gespeichert. ' . ((int)$a['pilot'] ? 'Pilotplatz verbraucht (noch ' . ld_pilot_frei() . ' frei). ' : '') . ($a['code'] !== '' ? (pd_row('SELECT 1 FROM codes WHERE code = ?', [$a['code']]) ? 'Code ' . $a['code'] . ' verbraucht' . ($a['code_art'] === 'empfehlung' ? ', Gutschrift für den Werber eingetragen.' : '.') : 'Hinweis: Code ' . $a['code'] . ' gibt es nicht im System, kein Rabatt verbucht.') : '')); }
     else p_flash('Gespeichert.');

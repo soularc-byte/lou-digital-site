@@ -1,6 +1,7 @@
 <?php
 /*
- * Lou Digital – 100-Punkte-Website-Check (Version 4, 28.10.2026)
+ * Lou Digital – 100-Punkte-Website-Check (Version 5, 31.10.2026)
+ * Version 5: nur von der eigenen Website, höchstens 4 Prüfungen gleichzeitig, Begrenzung je IPv6-/64-Netz, IPv6-Sonderbereiche per Präfix.
  * Version 4: jeder Punkt hat einen Status (ok, fehlt, na = trifft nicht zu, np = nicht prüfbar), gezählt wird immer von 100.
  * POST url=…&sprache=de|en&modus=sofort|voll
  * Prüft nur, was jeder Besucher sieht: Antworten des Servers, Zertifikat, HTML der Startseite und der Kontaktseite,
@@ -58,6 +59,12 @@ $roh = trim((string)($in['url'] ?? ''));
 define('LC_FRIST', $VOLL ? 40.0 : 20.0); // Gesamtzeit in Sekunden, danach wird nichts mehr abgerufen
 function lc_rest(): float { return LC_START + LC_FRIST - microtime(true); }
 if ($roh === '' || strlen($roh) > 200) lc_out(['ok' => false, 'error' => 'url'], 400);
+/* Version 5: Aufrufe nur von lou-digital.de (stoppt das Auslösen über fremde Seiten) */
+if (PHP_SAPI !== 'cli') {
+    $o = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
+    if ($o === '' || $o === 'null') $o = (string)($_SERVER['HTTP_REFERER'] ?? '');
+    if ($o !== '' && $o !== 'https://lou-digital.de' && strpos($o, 'https://lou-digital.de/') !== 0) lc_out(['ok' => false, 'error' => 'origin'], 403);
+}
 
 /* ---------------- Begrenzung je Besucher (gekürzte Prüfsumme, höchstens 1 Stunde gespeichert, Aufräumen bei jedem Aufruf) ---------------- */
 function lc_limit(bool $voll): bool
@@ -69,6 +76,7 @@ function lc_limit(bool $voll): bool
     if (!is_file($saltFile)) { @file_put_contents($saltFile, bin2hex(random_bytes(16))); foreach (glob($dir . '/salt-*') ?: [] as $f) if ($f !== $saltFile) @unlink($f); }
     $salt = (string)@file_get_contents($saltFile);
     $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) { $b = @inet_pton($ip); if ($b !== false) $ip = bin2hex(substr($b, 0, 8)) . '::/64'; }   // Version 5: je /64-Netz
     $key = substr(hash('sha256', $salt . '|' . $ip), 0, 16);
     $now = time();
     $f = $dir . '/r-' . $key;
@@ -85,6 +93,17 @@ function lc_limit(bool $voll): bool
     return $n <= 400;
 }
 if (!lc_limit($VOLL)) lc_out(['ok' => false, 'error' => 'rate'], 429);
+/* Version 5: höchstens 4 Prüfungen gleichzeitig, damit der Check nie alle PHP-Prozesse belegt */
+$LC_SLOT = null;
+if (PHP_SAPI !== 'cli') {
+    $sd = sys_get_temp_dir();
+    for ($i = 0; $i < 4; $i++) {
+        $fh = @fopen($sd . '/lou-check100-slot-' . $i, 'c');
+        if ($fh && flock($fh, LOCK_EX | LOCK_NB)) { $LC_SLOT = $fh; break; }
+        if ($fh) fclose($fh);
+    }
+    if ($LC_SLOT === null) lc_out(['ok' => false, 'error' => 'busy'], 429);
+}
 
 /* ---------------- Adresse prüfen ---------------- */
 function lc_host_ok(string $h): bool
@@ -102,8 +121,13 @@ function lc_ip_public(string $ip): bool
             if (($l & $m) === (ip2long($n[0]) & $m)) return false;
         }
     } else {
-        $p = strtolower($ip);
-        if (strpos($p, 'fc') === 0 || strpos($p, 'fd') === 0 || strpos($p, 'fe80') === 0 || $p === '::1' || strpos($p, '::ffff:') === 0) return false;
+        /* Version 5: Sonderbereiche per Präfix: ::/96, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, 2001::/23, 2002::/16, fc00::/7, fe80::/10, fec0::/10, ff00::/8 */
+        $b = @inet_pton($ip); if ($b === false || strlen($b) !== 16) return false;
+        $bits = ''; foreach (str_split($b) as $c) $bits .= str_pad(decbin(ord($c)), 8, '0', STR_PAD_LEFT);
+        foreach ([['::', 96], ['::ffff:0:0', 96], ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['100::', 64], ['2001::', 23], ['2001:db8::', 32], ['2002::', 16], ['fc00::', 7], ['fe80::', 10], ['fec0::', 10], ['ff00::', 8]] as $n) {
+            $nb = ''; foreach (str_split((string)inet_pton($n[0])) as $c) $nb .= str_pad(decbin(ord($c)), 8, '0', STR_PAD_LEFT);
+            if (substr($bits, 0, $n[1]) === substr($nb, 0, $n[1])) return false;
+        }
     }
     return true;
 }

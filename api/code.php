@@ -9,8 +9,9 @@ require __DIR__ . '/inc/lib.php';
 require __DIR__ . '/inc/portal.php';
 header('Cache-Control: no-store'); header('X-Robots-Tag: noindex');
 if (!ld_rate('code', 120)) ld_json(429, ['ok' => false, 'error' => 'rate']);
-$codeIn = strtoupper(preg_replace('/[^A-Za-z0-9-]/', '', (string)($_GET['code'] ?? '')) ?? '');
-$pakete = array_values(array_filter(array_map(function ($s) { return preg_replace('/[^a-z]/', '', strtolower($s)); }, explode(',', (string)($_GET['pakete'] ?? ''))), function ($k) { return isset(LD_PREISE[$k]); }));
+$gs = function (string $k): string { $v = $_GET[$k] ?? ''; return is_string($v) ? $v : ''; };   // Version 33: nur Zeichenketten (kein Array)
+$codeIn = strtoupper(preg_replace('/[^A-Za-z0-9-]/', '', $gs('code')) ?? '');
+$pakete = array_values(array_filter(array_map(function ($s) { return preg_replace('/[^a-z]/', '', strtolower($s)); }, explode(',', $gs('pakete'))), function ($k) { return isset(LD_PREISE[$k]); }));
 try {
   $frei = ld_pilot_frei(); $aktion = ld_aktion_aktiv();
   $out = ['ok' => true, 'pilot_frei' => $frei, 'pilot' => $aktion && $aktion['art'] === 'pilot', 'aktion' => ld_aktion_info($aktion, $pakete), 'preise' => ld_preise($aktion)];

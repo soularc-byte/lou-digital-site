@@ -8,6 +8,8 @@ define('LD', 1);
 require __DIR__ . '/inc/lib.php';
 require __DIR__ . '/inc/portal.php';
 header('Cache-Control: no-store'); header('X-Robots-Tag: noindex');
+$lock = @fopen(ld_dir('ld-data') . '/cron.lock', 'c');   // Version 33: nie zwei Läufe gleichzeitig (sonst doppelte Störungsmails)
+if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) ld_json(200, ['ok' => true, 'uebersprungen' => true, 'grund' => 'laeuft']);
 try {
   $letzte = pd_get('cron_zuletzt');
   if ($letzte !== '' && strtotime($letzte) > time() - 240) ld_json(200, ['ok' => true, 'uebersprungen' => true, 'zuletzt' => $letzte]);

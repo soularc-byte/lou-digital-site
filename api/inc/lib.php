@@ -1,8 +1,11 @@
 <?php
-/* Lou Digital – gemeinsame Funktionen für Formulare, Mails, Website-Check und Statistik (Version 32, 30.10.2026)
+/* Lou Digital – gemeinsame Funktionen für Formulare, Mails, Website-Check und Statistik (Version 33, 31.10.2026)
+   Version 33: SSRF-Schutz mit echtem Port (nur 80/443, nur IPv4), Rate-Limits je IPv6-/64-Netz, ld_rate_key(), ld_same_origin(),
+   IPv6-Sonderbereiche per Präfix, Fehlermeldungen nie anzeigen, SMTP nur über TLS-Ports.
    Version 32: Rate-Limit-Dateien werden aufgeräumt, strengere Prüfung öffentlicher Adressen (Carrier-NAT, Multicast, IPv6-Sonderbereiche), ld_resolve_public(). */
 declare(strict_types=1);
 if (!defined('LD')) { http_response_code(404); exit; }
+@ini_set('display_errors', '0'); @ini_set('log_errors', '1');
 date_default_timezone_set('Europe/Berlin');
 
 const LD_TO        = 'info@lou-digital.de';
@@ -16,7 +19,7 @@ function ld_root(): string { return rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? 
 function ld_dir(string $name): string {
   $d = dirname(ld_root()) . '/' . $name;
   if (!is_dir($d)) @mkdir($d, 0750, true);
-  if (!is_dir($d) || !is_writable($d)) { $d = sys_get_temp_dir() . '/' . $name; if (!is_dir($d)) @mkdir($d, 0700, true); }
+  if (!is_dir($d) || !is_writable($d)) { error_log('Lou Digital: Datenordner ' . $d . ' nicht beschreibbar'); ld_json(503, ['ok' => false, 'error' => 'storage']); }   // Version 33: lieber abbrechen als Daten im temporären Ordner ablegen
   return $d;
 }
 function ld_json(int $code, array $data): void {
@@ -24,7 +27,27 @@ function ld_json(int $code, array $data): void {
   header('Content-Type: application/json; charset=utf-8'); header('X-Content-Type-Options: nosniff'); header('Cache-Control: no-store');
   echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit;
 }
-function ld_ip(): string { return (string)($_SERVER['REMOTE_ADDR'] ?? '0'); }
+/* Version 33: IPv6-Adressen zählen je /64-Netz (sonst bekäme jede Adresse eines Anschlusses einen eigenen Zähler) */
+function ld_ip(): string {
+  $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '0');
+  if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) { $b = @inet_pton($ip); if ($b !== false) return bin2hex(substr($b, 0, 8)) . '::/64'; }
+  return $ip;
+}
+/* Zähler mit eigenem Schlüssel und Zeitfenster (z. B. je Empfänger-Adresse oder gesamt), unabhängig von der IP */
+function ld_rate_key(string $key, int $max, int $window): bool {
+  $f = sys_get_temp_dir() . '/ld_rk_' . hash('sha256', $key . '|' . intdiv(time(), max(60, $window)));
+  $n = is_file($f) ? (int)file_get_contents($f) : 0;
+  if ($n >= $max) return false;
+  @file_put_contents($f, (string)($n + 1), LOCK_EX);
+  if (random_int(1, 40) === 1) foreach (glob(sys_get_temp_dir() . '/ld_rk_*') ?: [] as $g) if (@filemtime($g) < time() - 2 * 86400) @unlink($g);
+  return true;
+}
+/* Öffentliche POST-Schnittstellen nur von der eigenen Website (stoppt das Absenden über fremde Seiten) */
+function ld_same_origin(): void {
+  $o = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
+  if ($o === '' || $o === 'null') { $r = (string)($_SERVER['HTTP_REFERER'] ?? ''); if ($r === '') return; $o = $r; }
+  if ($o !== LD_SITE && strpos($o, LD_SITE . '/') !== 0) ld_json(403, ['ok' => false, 'error' => 'origin']);
+}
 /* Begrenzung pro IP und Stunde; gespeichert wird nur ein Hash, der nach einer Stunde wertlos ist.
    Version 32: alte Zähldateien werden gelegentlich aufgeräumt, damit sich im temporären Ordner nichts ansammelt. */
 function ld_rate(string $bucket, int $max): bool {
@@ -52,6 +75,8 @@ function ld_post(string $k, int $max): string {
   $v = preg_replace('/[^\P{C}\n\t]/u', '', $v) ?? '';
   return trim(mb_substr($v, 0, $max));
 }
+/* GET-Wert als Zeichenkette (Arrays wie ?t[]=1 ergeben einen leeren Text, keine Warnung) */
+function ld_get(string $k): string { $v = $_GET[$k] ?? ''; return is_string($v) ? $v : ''; }
 function ld_line(string $v): string { return trim(preg_replace('/\s+/u', ' ', $v) ?? ''); }
 function ld_h(string $v): string { return htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function ld_enc(string $s): string { return '=?UTF-8?B?' . base64_encode($s) . '?='; }
@@ -107,6 +132,7 @@ function ld_send(string $to, string $subject, string $text, ?string $html = null
 function ld_smtp(array $c, string $to, string $msg, ?array &$log = null): bool {
   $log = [];
   $port = (int)($c['port'] ?? 465);
+  if (!in_array($port, [465, 587], true)) { $log[] = 'port'; return false; }   // Version 33: Anmeldung nur verschlüsselt
   $host = ($port === 465 ? 'ssl://' : '') . $c['host'];
   $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $c['host']]]);
   $s = @stream_socket_client($host . ':' . $port, $en, $es, 8, STREAM_CLIENT_CONNECT, $ctx);
@@ -160,8 +186,14 @@ function ld_public_ip(string $ip): bool {
     foreach ([['100.64.0.0', 10], ['192.0.0.0', 24], ['198.18.0.0', 15], ['224.0.0.0', 4]] as $n) { $m = -1 << (32 - $n[1]); if (($l & $m) === (ip2long($n[0]) & $m)) return false; }   // Carrier-NAT, Sonderbereiche, Multicast
     return true;
   }
-  $p = strtolower($ip);
-  return !(strpos($p, 'fc') === 0 || strpos($p, 'fd') === 0 || strpos($p, 'fe80') === 0 || strpos($p, 'ff') === 0 || $p === '::' || strpos($p, '::ffff:') === 0 || strpos($p, '64:ff9b:') === 0);
+  /* IPv6: Sonderbereiche per Präfix (Version 33): ::/96, ::ffff:0:0/96, 64:ff9b::/96, 100::/64, 2001::/23, 2002::/16, fc00::/7, fe80::/10, fec0::/10, ff00::/8 */
+  $b = @inet_pton($ip); if ($b === false || strlen($b) !== 16) return false;
+  $bits = ''; foreach (str_split($b) as $c) $bits .= str_pad(decbin(ord($c)), 8, '0', STR_PAD_LEFT);
+  foreach ([['::', 96], ['::ffff:0:0', 96], ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['100::', 64], ['2001::', 23], ['2001:db8::', 32], ['2002::', 16], ['fc00::', 7], ['fe80::', 10], ['fec0::', 10], ['ff00::', 8]] as $n) {
+    $nb = ''; foreach (str_split((string)inet_pton($n[0])) as $c) $nb .= str_pad(decbin(ord($c)), 8, '0', STR_PAD_LEFT);
+    if (substr($bits, 0, $n[1]) === substr($nb, 0, $n[1])) return false;
+  }
+  return true;
 }
 function ld_norm_url(string $u): ?array {
   $u = trim($u);
@@ -180,16 +212,19 @@ function ld_fetch(string $url, int $hops = 4, bool $verify = true): array {
   $t0 = microtime(true);
   for ($i = 0; $i <= $hops; $i++) {
     $p = parse_url($url);
-    if (!$p || empty($p['host']) || !in_array(strtolower($p['scheme'] ?? ''), ['http', 'https'], true)) { $res['err'] = 'url'; return $res; }
+    if (!$p || empty($p['host']) || !in_array(strtolower($p['scheme'] ?? ''), ['http', 'https'], true) || isset($p['user']) || isset($p['pass'])) { $res['err'] = 'url'; return $res; }
     $host = strtolower($p['host']); $https = strtolower($p['scheme']) === 'https';
+    /* Version 33: Port aus der Adresse (auch nach Umleitungen), nur 80/443; nur Hostnamen, keine IP-Literale */
+    $port = isset($p['port']) ? (int)$p['port'] : ($https ? 443 : 80);
+    if (!in_array($port, [80, 443], true)) { $res['err'] = 'blocked'; return $res; }
+    if (!preg_match('/^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/', $host)) { $res['err'] = 'blocked'; return $res; }
     $ips = @gethostbynamel($host) ?: [];
     if (!$ips) { $res['err'] = 'dns'; return $res; }
     foreach ($ips as $ip) if (!ld_public_ip($ip)) { $res['err'] = 'blocked'; return $res; }
-    $port = $https ? 443 : 80;
     $buf = ''; $tooBig = false;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-      CURLOPT_RESOLVE => [$host . ':' . $port . ':' . $ips[0]],
+      CURLOPT_RESOLVE => [$host . ':' . $port . ':' . $ips[0]], CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4, CURLOPT_PROXY => '', CURLOPT_NOPROXY => '*',
       CURLOPT_FOLLOWLOCATION => false, CURLOPT_HEADER => false, CURLOPT_CONNECTTIMEOUT => 4, CURLOPT_TIMEOUT => 9,
       CURLOPT_SSL_VERIFYPEER => $verify, CURLOPT_SSL_VERIFYHOST => $verify ? 2 : 0, CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
       CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; LouDigital-Check/1.0; +https://lou-digital.de/website-check)',

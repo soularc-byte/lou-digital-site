@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 32, 30.10.2026)
+/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 33, 31.10.2026)
+   Version 33: nur von der eigenen Website, Bestätigung höchstens 2× je Empfänger und Tag (60/Stunde gesamt), Name in der Anrede nur als reiner Name.
    Version 32: Link zum Auftrag im Portal korrigiert (Büro → Auftrag), Sicherheitsrunde (siehe lib.php, portal.php).
    Version 30: Codes und Pilotpreis aus der Portal-Datenbank, Auftrag wird im Portal angelegt.
    Version 29: unverbindliche Preisübersicht (Angebot) in der Bestätigung, an info@ und an n8n (Leads), Kombi-Rabatt.
@@ -12,7 +13,8 @@ require __DIR__ . '/inc/portal.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') ld_json(405, ['ok' => false, 'error' => 'method']);
 if (ld_post('website', 200) !== '') ld_json(200, ['ok' => true]);           // Falle für Bots
-if (!ld_rate('form', 6)) ld_json(429, ['ok' => false, 'error' => 'rate']);
+ld_same_origin();
+if (!ld_rate('form', 6) || !ld_rate_key('form_gesamt', 60, 3600)) ld_json(429, ['ok' => false, 'error' => 'rate']);
 
 $lang = ld_post('sprache', 2) === 'en' ? 'en' : 'de';
 $de = $lang === 'de';
@@ -210,7 +212,10 @@ $htmlIn = ld_mail_html('de', "Neue $kindDe", $intro, $rows, $extra);
 if (!ld_send(LD_TO, $subject, $text, $htmlIn, $email)) ld_json(500, ['ok' => false, 'error' => 'mail']);
 
 /* ---------- Bestätigung an den Absender, in der Sprache der Seite ---------- */
-if ($email !== '') {
+/* Version 33: keine Bestätigungen in Massen an fremde Adressen (Schutz vor Missbrauch als Mail-Schleuder) */
+$bestaetigen = $email !== '' && ld_rate_key('rcpt|' . strtolower($email), 2, 86400) && ld_rate_key('rcpt_gesamt', 40, 3600);
+$anrede = preg_match('/^[\p{L}][\p{L} .\'-]{1,59}$/u', $name) ? $name : '';
+if ($bestaetigen) {
   $first = $name !== '' ? $name : ($de ? 'und danke' : 'and thank you');
   if ($kind === 'feedback') {
     $cs = $de ? 'Danke für Ihr Feedback' : 'Thank you for your feedback';
@@ -218,7 +223,7 @@ if ($email !== '') {
     $crows = [];
   } else {
     $cs = $kind === 'frage' ? ($de ? 'Ihre Frage an Lou Digital' : 'Your question to Lou Digital') : ($termin ? ($de ? 'Ihr Terminwunsch bei Lou Digital' : 'Your appointment request at Lou Digital') : ($de ? 'Ihre Anfrage bei Lou Digital' : 'Your inquiry at Lou Digital'));
-    $ci = '<p style="margin:0 0 10px">' . ($de ? 'Guten Tag ' : 'Hello ') . ld_h($name) . ',</p><p style="margin:0">'
+    $ci = '<p style="margin:0 0 10px">' . ($anrede !== '' ? ($de ? 'Guten Tag ' : 'Hello ') . ld_h($anrede) : ($de ? 'Guten Tag' : 'Hello')) . ',</p><p style="margin:0">'
         . ($de ? 'vielen Dank, Ihre ' . ($kind === 'frage' ? 'Frage' : 'Anfrage') . ' ist angekommen. Ich melde mich persönlich, in der Regel innerhalb von 24 Stunden an Werktagen.'
                : 'thank you, your ' . ($kind === 'frage' ? 'question' : 'inquiry') . ' has arrived. I will reply personally, usually within 24 hours on working days.')
         . ($termin ? ($de ? ' Ihren Terminwunsch bestätige ich Ihnen per E-Mail.' : ' I will confirm your appointment by email.') : '')
