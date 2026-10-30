@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – Kundenportal (Version 30, 29.10.2026)
+/* Lou Digital – Kundenportal (Version 32, 30.10.2026)
+   Version 32: Konto-Sperre nach 8 Fehlversuchen in 15 Minuten, 2FA-Code nur einmal gültig, Statistik unter Büro → Statistik, p_str() für POST-Felder.
    Aufruf über /portal/… (Rewrite in .htaccess). Anmeldung mit E-Mail + Passwort, freiwillige 2FA (TOTP),
    Erstpasswort wird erzeugt und per Mail geschickt, spätere Passwortwechsel werden per Mail bestätigt.
    Daten: ../ld-data/portal.sqlite (siehe api/inc/portal.php). Keine Cookies außer der Sitzung (ldp). */
@@ -41,7 +42,7 @@ if (preg_match('/^[a-f0-9]{48}$/', $tok)) {
 if (!$sess) { $me = null; if ($tok !== '') p_cookie(''); }
 $csrf = $sess ? $sess['csrf'] : '';
 $exempt = in_array($route, ['login', 'vergessen', 'reset', 'einrichten'], true);
-if ($post && !$exempt && (!$sess || !hash_equals($csrf, (string)($_POST['_t'] ?? '')))) { p_flash('Formular abgelaufen, bitte noch einmal senden.', 'warn'); p_go($sess ? P_BASE . '/' . $route : P_BASE . '/login'); }
+if ($post && !$exempt && (!$sess || !hash_equals($csrf, p_str('_t')))) { p_flash('Formular abgelaufen, bitte noch einmal senden.', 'warn'); p_go($sess ? P_BASE . '/' . $route : P_BASE . '/login'); }
 
 $admin = $me && $me['rolle'] === 'admin';
 $zfaOffen = $me && (int)$me['totp_aktiv'] === 1 && (int)$sess['zfa'] === 0;
@@ -58,6 +59,8 @@ function p_flash_lesen(): string {
   return '<div class="p-flash p-flash--' . ld_h(preg_replace('/[^a-z]/', '', $art) ?: 'ok') . '" role="status">' . ld_h($txt) . '</div>';
 }
 function h(string $s): string { return ld_h($s); }
+/* Version 32: POST-Wert als Zeichenkette (Felder, die als Liste geschickt werden, zählen als leer) */
+function p_str(string $k): string { $v = $_POST[$k] ?? ''; return is_string($v) ? $v : ''; }
 function p_datum(string $ts, bool $zeit = false): string { if ($ts === '') return '–'; $t = strtotime($ts); return $t ? date($zeit ? 'd.m.Y, H:i' : 'd.m.Y', $t) : h($ts); }
 function p_eur(int $n): string { return number_format($n, 0, ',', '.') . ' €'; }
 function p_pw_ok(string $p): bool { return mb_strlen($p) >= 10 && preg_match('/[A-Za-z]/', $p) && preg_match('/\d|[^A-Za-z0-9]/', $p); }
@@ -86,7 +89,7 @@ function p_tickets_zaehlen(int $kunde): int { $r = pd_row("SELECT COUNT(*) c FRO
 function p_nav(?array $me, bool $admin, string $route): string {
   if (!$me) return '';
   $k = [['', 'Übersicht'], ['projekt', 'Projekt'], ['website', 'Website'], ['betreuung', 'Betreuung'], ['workflows', 'Automatik'], ['dokumente', 'Dokumente'], ['nachrichten', 'Nachrichten'], ['hilfe', 'Hilfe'], ['empfehlen', 'Empfehlen'], ['berichte', 'Berichte'], ['einstellungen', 'Einstellungen']];
-  $a = [['admin', 'Übersicht'], ['admin/buero', 'Eingang'], ['admin/auftraege', 'Aufträge'], ['admin/kunden', 'Kunden'], ['admin/tickets', 'Tickets'], ['admin/codes', 'Codes & Aktionen'], ['admin/einstellungen', 'Einstellungen']];
+  $a = [['admin', 'Übersicht'], ['admin/buero', 'Eingang'], ['admin/auftraege', 'Aufträge'], ['admin/kunden', 'Kunden'], ['admin/tickets', 'Tickets'], ['admin/codes', 'Codes & Aktionen'], ['admin/statistik', 'Statistik'], ['admin/einstellungen', 'Einstellungen']];
   $o = '<nav class="p-nav" aria-label="Portal"><ul>';
   foreach ($admin ? $a : $k as [$r, $t]) { $on = $route === $r || ($r !== '' && $r !== 'admin' && strpos($route, $r) === 0); $o .= '<li><a href="' . P_BASE . '/' . $r . '"' . ($on ? ' aria-current="page"' : '') . '>' . $t . '</a></li>'; }
   if ($admin) $o .= '<li class="p-nav-sep"><a href="' . P_BASE . '/einstellungen">Mein Konto</a></li>';
@@ -114,24 +117,27 @@ if ($route === 'login' || ($route === '' && !$me)) {
   if ($me) p_go(P_BASE);
   $err = '';
   if ($post) {
-    $email = strtolower(trim(ld_post('email', 150))); $pw = (string)($_POST['passwort'] ?? '');
+    $email = strtolower(trim(ld_post('email', 150))); $pw = p_str('passwort');
     if (!ld_rate('plogin', 25)) $err = 'Zu viele Versuche. Bitte in einer Stunde noch einmal.';
     else {
       $k = pd_row('SELECT * FROM kunden WHERE email = ? AND aktiv = 1', [$email]);
       usleep(random_int(80000, 200000));
-      if ($k && $k['pass_hash'] !== '' && password_verify($pw, $k['pass_hash'])) {
+      /* Version 32: Sperre je Konto (nicht nur je IP): nach 8 Fehlversuchen in 15 Minuten wird das Konto vorübergehend abgewiesen,
+         mit derselben Meldung wie bei falschem Passwort, damit sich nicht erkennen lässt, welche Konten es gibt */
+      $gesperrt = $k && (int)(pd_row("SELECT COUNT(*) c FROM protokoll WHERE kunde_id = ? AND aktion = 'login_fehl' AND zeit >= ?", [(int)$k['id'], date('Y-m-d H:i:s', time() - 900)])['c'] ?? 0) >= 8;
+      if ($k && !$gesperrt && $k['pass_hash'] !== '' && password_verify($pw, $k['pass_hash'])) {
         p_login($k, (int)$k['totp_aktiv'] === 1);
         pd_log((int)$k['id'], 'login', '');
         p_go(P_BASE . ((int)$k['totp_aktiv'] === 1 ? '/zfa' : ((int)$k['pass_wechsel'] === 1 ? '/passwort' : '')));
       }
       $err = 'E-Mail oder Passwort stimmen nicht.';
-      if ($k) pd_log((int)$k['id'], 'login_fehl', '');
+      if ($k) pd_log((int)$k['id'], 'login_fehl', $gesperrt ? 'Konto vorübergehend gesperrt' : '');
     }
   }
   $hatAdmin = (bool)pd_row("SELECT 1 FROM kunden WHERE rolle = 'admin' LIMIT 1");
   out('Anmelden', '<section class="p-card p-card--narrow"><h1>Kundenportal</h1><p class="p-lead">Hier sehen Sie den Stand Ihres Projekts, Ihre Website, Ihre Automatik, Dokumente und Nachrichten.</p>'
     . ($err ? '<div class="p-flash p-flash--warn">' . h($err) . '</div>' : '')
-    . '<form method="post" action="' . P_BASE . '/login" class="p-form"><label>E-Mail<input name="email" type="email" required autocomplete="username" maxlength="150" value="' . h((string)($_POST['email'] ?? '')) . '"></label>'
+    . '<form method="post" action="' . P_BASE . '/login" class="p-form"><label>E-Mail<input name="email" type="email" required autocomplete="username" maxlength="150" value="' . h(ld_post('email', 150)) . '"></label>'
     . '<label>Passwort<input name="passwort" type="password" required autocomplete="current-password" maxlength="200"></label>'
     . '<button class="btn btn--primary" type="submit">Anmelden</button></form>'
     . '<p class="p-small"><a href="' . P_BASE . '/vergessen">Passwort vergessen?</a>' . (!$hatAdmin ? ' · <a href="' . P_BASE . '/einrichten">Portal einrichten</a>' : '') . '</p>'
@@ -158,7 +164,7 @@ if ($route === 'reset') {
   if (!$tk) out('Link ungültig', '<section class="p-card p-card--narrow"><h1>Link ungültig oder abgelaufen</h1><p><a href="' . P_BASE . '/vergessen">Neuen Link anfordern</a></p></section>');
   $err = '';
   if ($post) {
-    $p1 = (string)($_POST['p1'] ?? ''); $p2 = (string)($_POST['p2'] ?? '');
+    $p1 = p_str('p1'); $p2 = p_str('p2');
     if ($p1 !== $p2) $err = 'Die Passwörter sind nicht gleich.'; elseif (!p_pw_ok($p1)) $err = 'Mindestens 10 Zeichen, mit Buchstaben und einer Zahl oder einem Sonderzeichen.';
     else {
       ld_token_lesen($t, 'reset', true);
@@ -182,7 +188,7 @@ if ($route === 'einrichten') {
     if (!$tk) out('Link ungültig', '<section class="p-card p-card--narrow"><h1>Link ungültig oder abgelaufen</h1><p><a href="' . P_BASE . '/einrichten">Neu anfordern</a></p></section>');
     $err = '';
     if ($post) {
-      $p1 = (string)($_POST['p1'] ?? ''); $p2 = (string)($_POST['p2'] ?? '');
+      $p1 = p_str('p1'); $p2 = p_str('p2');
       if ($p1 !== $p2) $err = 'Die Passwörter sind nicht gleich.'; elseif (!p_pw_ok($p1)) $err = 'Mindestens 10 Zeichen, mit Buchstaben und einer Zahl oder einem Sonderzeichen.';
       else {
         ld_token_lesen($t, 'einrichten', true);
@@ -209,8 +215,8 @@ if ($zfaOffen) {
   $err = '';
   if ($post) {
     if (!ld_rate('pzfa', 30)) $err = 'Zu viele Versuche.';
-    elseif (ld_totp_ok((string)$me['totp_secret'], (string)($_POST['code'] ?? ''))) { pd_q('UPDATE sitzungen SET zfa = 1 WHERE id = ?', [$sess['id']]); p_go(P_BASE . ($pwOffen ? '/passwort' : '')); }
-    else $err = 'Der Code stimmt nicht. Bitte den aktuellen Code aus der Authenticator-App eingeben.';
+    elseif (ld_totp_login((int)$me['id'], (string)$me['totp_secret'], ld_post('code', 10))) { pd_q('UPDATE sitzungen SET zfa = 1 WHERE id = ?', [$sess['id']]); p_go(P_BASE . ($pwOffen ? '/passwort' : '')); }
+    else { pd_log((int)$me['id'], 'login_fehl', '2FA'); $err = 'Der Code stimmt nicht oder wurde schon benutzt. Bitte den nächsten Code aus der Authenticator-App eingeben.'; }
   }
   out('Zweiter Faktor', '<section class="p-card p-card--narrow"><h1>Zweiter Faktor</h1><p class="p-lead">Bitte den 6-stelligen Code aus Ihrer Authenticator-App eingeben.</p>' . ($err ? '<div class="p-flash p-flash--warn">' . h($err) . '</div>' : '')
     . '<form method="post" class="p-form">' . p_form($csrf) . '<label>Code<input name="code" inputmode="numeric" pattern="[0-9 ]*" autocomplete="one-time-code" maxlength="7" required autofocus></label><button class="btn btn--primary" type="submit">Bestätigen</button></form>'
@@ -222,7 +228,7 @@ if ($pwOffen) {
   if ($route !== 'passwort') p_go(P_BASE . '/passwort');
   $err = '';
   if ($post) {
-    $p1 = (string)($_POST['p1'] ?? ''); $p2 = (string)($_POST['p2'] ?? '');
+    $p1 = p_str('p1'); $p2 = p_str('p2');
     if ($p1 !== $p2) $err = 'Die Passwörter sind nicht gleich.'; elseif (!p_pw_ok($p1)) $err = 'Mindestens 10 Zeichen, mit Buchstaben und einer Zahl oder einem Sonderzeichen.';
     elseif (password_verify($p1, $me['pass_hash'])) $err = 'Bitte ein neues Passwort wählen, nicht das Startpasswort.';
     else {

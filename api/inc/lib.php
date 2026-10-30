@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – gemeinsame Funktionen für Formulare, Mails, Website-Check und Statistik (Version 12, 24.10.2026) */
+/* Lou Digital – gemeinsame Funktionen für Formulare, Mails, Website-Check und Statistik (Version 32, 30.10.2026)
+   Version 32: Rate-Limit-Dateien werden aufgeräumt, strengere Prüfung öffentlicher Adressen (Carrier-NAT, Multicast, IPv6-Sonderbereiche), ld_resolve_public(). */
 declare(strict_types=1);
 if (!defined('LD')) { http_response_code(404); exit; }
 date_default_timezone_set('Europe/Berlin');
@@ -24,13 +25,25 @@ function ld_json(int $code, array $data): void {
   echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit;
 }
 function ld_ip(): string { return (string)($_SERVER['REMOTE_ADDR'] ?? '0'); }
-/* Begrenzung pro IP und Stunde; gespeichert wird nur ein Hash, der nach einer Stunde wertlos ist */
+/* Begrenzung pro IP und Stunde; gespeichert wird nur ein Hash, der nach einer Stunde wertlos ist.
+   Version 32: alte Zähldateien werden gelegentlich aufgeräumt, damit sich im temporären Ordner nichts ansammelt. */
 function ld_rate(string $bucket, int $max): bool {
+  $bucket = preg_replace('/[^a-z0-9_-]/i', '', $bucket) ?? '';
   $f = sys_get_temp_dir() . '/ld_rl_' . $bucket . '_' . hash('sha256', ld_ip() . date('YmdH') . $bucket);
   $n = is_file($f) ? (int)file_get_contents($f) : 0;
   if ($n >= $max) return false;
   @file_put_contents($f, (string)($n + 1));
+  if (random_int(1, 40) === 1) foreach (glob(sys_get_temp_dir() . '/ld_rl_*') ?: [] as $g) if (@filemtime($g) < time() - 7200) @unlink($g);
   return true;
+}
+/* Erste öffentliche IPv4-Adresse eines Hostnamens oder null (interne Netze, lokale Adressen und unbekannte Namen werden abgelehnt) */
+function ld_resolve_public(string $host): ?string {
+  $host = strtolower(trim($host));
+  if (!preg_match('/^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/', $host)) return null;
+  $ips = @gethostbynamel($host) ?: [];
+  if (!$ips) return null;
+  foreach ($ips as $ip) if (!ld_public_ip($ip)) return null;
+  return $ips[0];
 }
 function ld_post(string $k, int $max): string {
   $v = $_POST[$k] ?? '';
@@ -140,7 +153,16 @@ function ld_mail_html(string $lang, string $title, string $intro, array $rows = 
 }
 
 /* ---------- Website-Check: fünf Punkte ---------- */
-function ld_public_ip(string $ip): bool { return (bool)filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE); }
+function ld_public_ip(string $ip): bool {
+  if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) return false;
+  if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+    $l = ip2long($ip);
+    foreach ([['100.64.0.0', 10], ['192.0.0.0', 24], ['198.18.0.0', 15], ['224.0.0.0', 4]] as $n) { $m = -1 << (32 - $n[1]); if (($l & $m) === (ip2long($n[0]) & $m)) return false; }   // Carrier-NAT, Sonderbereiche, Multicast
+    return true;
+  }
+  $p = strtolower($ip);
+  return !(strpos($p, 'fc') === 0 || strpos($p, 'fd') === 0 || strpos($p, 'fe80') === 0 || strpos($p, 'ff') === 0 || $p === '::' || strpos($p, '::ffff:') === 0 || strpos($p, '64:ff9b:') === 0);
+}
 function ld_norm_url(string $u): ?array {
   $u = trim($u);
   if ($u === '' || mb_strlen($u) > 200) return null;

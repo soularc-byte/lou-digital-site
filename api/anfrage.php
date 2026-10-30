@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 30, 29.10.2026)
+/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 32, 30.10.2026)
+   Version 32: Link zum Auftrag im Portal korrigiert (Büro → Auftrag), Sicherheitsrunde (siehe lib.php, portal.php).
    Version 30: Codes und Pilotpreis aus der Portal-Datenbank, Auftrag wird im Portal angelegt.
    Version 29: unverbindliche Preisübersicht (Angebot) in der Bestätigung, an info@ und an n8n (Leads), Kombi-Rabatt.
    Schickt die Nachricht an info@ und eine Bestätigung in der Sprache der Seite an den Absender. */
@@ -181,7 +182,7 @@ if ($url !== '') $rows['Website'] = $url;
 if ($checkNote !== '') $rows['Sofort-Check'] = $checkNote;
 if ($pkg !== '') $rows['Zusammenstellung'] = $pkg;
 if ($code) $rows['Code'] = $codeZeile . ($code['gueltig'] ? '' : ' – BITTE PRÜFEN');
-if ($auftragId) $rows['Portal'] = 'Auftrag #' . $auftragId . ' angelegt (Status Angebot) – ' . LD_SITE . '/portal/admin?auftrag=' . $auftragId;
+if ($auftragId) $rows['Portal'] = 'Auftrag #' . $auftragId . ' angelegt (Status Angebot) – ' . LD_SITE . '/portal/admin/auftrag?id=' . $auftragId;
 if ($aktion && $posten) $rows[$pilot ? 'Pilot' : 'Aktion'] = $pilot ? 'Pilotpreis aktiv, noch ' . $pilotFrei . ' von ' . LD_PILOT_MAX . ' frei' : $aktionTitel . ' (' . $aktion['code'] . ') aktiv';
 if ($angebot) $rows['Preisübersicht'] = ($angebot['einmalig'] ? number_format($angebot['einmalig'], 0, ',', '.') . ' € einmalig' : '') . ($angebot['monatlich'] ? ($angebot['einmalig'] ? ' + ' : '') . $angebot['monatlich'] . ' €/Monat' : '') . ($angebot['rabatt'] ? ' (Rabatte ' . $angebot['rabatt'] . ' € abgezogen)' : '') . ' – unverbindlich an den Kunden gesendet';
 if ($msg !== '') $rows[$kind === 'anfrage' ? 'Nachricht' : ($kind === 'frage' ? 'Frage' : 'Vorschlag')] = $msg;

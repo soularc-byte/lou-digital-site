@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – Datenschicht für Codes, Aufträge und Kundenportal (Version 31, 29.10.2026)
+/* Lou Digital – Datenschicht für Codes, Aufträge und Kundenportal (Version 32, 30.10.2026)
+   Version 32: 2FA-Codes gelten nur einmal (totp_schritt), Zertifikatsprüfung nur gegen öffentliche Adressen.
    SQLite-Datei außerhalb des Webroots: ../ld-data/portal.sqlite. Wird beim ersten Aufruf angelegt.
    Enthält: Preise, Rabattcodes (Pilot, Empfehlung, Aktion), Aufträge, Kunden, Sitzungen, 2FA, Tickets, Dokumente. */
 declare(strict_types=1);
@@ -62,6 +63,9 @@ function pd_schema(PDO $db): void {
   $db->exec("UPDATE codes SET auto = 1, titel = 'Pilotpreis', preis_website = " . LD_PREISE['website'][0] . ", preis_automatik = " . LD_PREISE['automatik'][0] . ", preis_umfrage = " . LD_PREISE['umfrage'][0] . " WHERE code = '" . LD_PILOT_CODE . "' AND titel = ''");
   $cols = array_column($db->query('PRAGMA table_info(auftraege)')->fetchAll(), 'name');
   if (!in_array('aktion', $cols, true)) $db->exec("ALTER TABLE auftraege ADD COLUMN aktion TEXT NOT NULL DEFAULT ''");
+  /* Version 32: letzter benutzter 2FA-Zeitschritt, damit ein Code nicht zweimal gilt */
+  $cols = array_column($db->query('PRAGMA table_info(kunden)')->fetchAll(), 'name');
+  if (!in_array('totp_schritt', $cols, true)) $db->exec("ALTER TABLE kunden ADD COLUMN totp_schritt INTEGER NOT NULL DEFAULT 0");
 }
 function pd_now(): string { return date('Y-m-d H:i:s'); }
 function pd_q(string $sql, array $p = []): PDOStatement { $s = pd()->prepare($sql); $s->execute($p); return $s; }
@@ -234,18 +238,28 @@ function ld_totp(string $secret, int $t = 0): string {
   $code = ((ord($h[$off]) & 0x7f) << 24 | ord($h[$off + 1]) << 16 | ord($h[$off + 2]) << 8 | ord($h[$off + 3])) % 1000000;
   return str_pad((string)$code, 6, '0', STR_PAD_LEFT);
 }
-function ld_totp_ok(string $secret, string $eingabe): bool {
+function ld_totp_ok(string $secret, string $eingabe, ?int &$schritt = null): bool {
   $e = preg_replace('/\D/', '', $eingabe) ?? '';
   if (strlen($e) !== 6 || $secret === '') return false;
   $t = (int)floor(time() / 30);
-  foreach ([0, -1, 1] as $d) if (hash_equals(ld_totp($secret, $t + $d), $e)) return true;
+  foreach ([0, -1, 1] as $d) if (hash_equals(ld_totp($secret, $t + $d), $e)) { $schritt = $t + $d; return true; }
   return false;
+}
+/* Version 32: 2FA-Code prüfen und den Zeitschritt verbrauchen. Ein Code gilt nur einmal (RFC 6238, Abschnitt 5.2). */
+function ld_totp_login(int $kunde, string $secret, string $eingabe): bool {
+  $schritt = null;
+  if (!ld_totp_ok($secret, $eingabe, $schritt)) return false;
+  $s = pd_q('UPDATE kunden SET totp_schritt = ? WHERE id = ? AND totp_schritt < ?', [(int)$schritt, $kunde, (int)$schritt]);
+  return $s->rowCount() === 1;
 }
 
 /* ---------- Website-Prüfung (Erreichbarkeit, Antwortzeit, Zertifikat) ---------- */
 function ld_ssl_bis(string $host): string {
+  /* Version 32: erst auflösen und nur öffentliche Adressen zulassen (gleiche Regel wie beim Website-Check), Verbindung an die geprüfte IP */
+  $ip = ld_resolve_public($host);
+  if ($ip === null) return '';
   $ctx = stream_context_create(['ssl' => ['capture_peer_cert' => true, 'verify_peer' => true, 'verify_peer_name' => true, 'SNI_enabled' => true, 'peer_name' => $host]]);
-  $s = @stream_socket_client('ssl://' . $host . ':443', $en, $es, 6, STREAM_CLIENT_CONNECT, $ctx);
+  $s = @stream_socket_client('ssl://' . $ip . ':443', $en, $es, 6, STREAM_CLIENT_CONNECT, $ctx);
   if (!$s) return '';
   $p = stream_context_get_params($s); fclose($s);
   $cert = $p['options']['ssl']['peer_certificate'] ?? null;

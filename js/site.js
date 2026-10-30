@@ -449,13 +449,15 @@
     var pbCode = document.createElement('div'); pbCode.className = 'pb-code'; pbCode.id = 'pb-code'; pbCode.hidden = true;
     var pbTxt = bar.querySelector('.pb-txt'); if (pbTxt) pbTxt.appendChild(pbCode);
     var codeVal = storedCode();
+    /* Version 32: Texte aus Server-Antworten (Aktionstitel, Hinweis) nur als Text in die Leiste, nie als HTML */
+    var escHtml = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
     var renderCode = function () {
       var keys = Object.keys(picks).filter(function (k) { return NORMAL[k]; });
       var html = '';
-      if (keys.length && (pilotInfo.pilot || aktionInfo)) { var sp = 0; keys.forEach(function (k) { sp += NORMAL[k] - PREIS[k]; }); if (sp > 0) html += '<span class="pb-tag">' + (pilotInfo.pilot ? T.pilotOn(T.eur(sp), pilotInfo.frei) : T.aktionOn(aktionInfo.titel, aktionInfo.code, T.eur(sp), aktionInfo.frei)) + '</span>'; }
+      if (keys.length && (pilotInfo.pilot || aktionInfo)) { var sp = 0; keys.forEach(function (k) { sp += NORMAL[k] - PREIS[k]; }); if (sp > 0) html += '<span class="pb-tag">' + escHtml(pilotInfo.pilot ? T.pilotOn(T.eur(sp), pilotInfo.frei) : T.aktionOn(aktionInfo.titel, aktionInfo.code, T.eur(sp), aktionInfo.frei)) + '</span>'; }
       if (codeInfo && codeInfo.code) {
-        if (codeInfo.gueltig && codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--ok">' + (codeInfo.ersparnis ? T.codeOk(codeInfo.code, codeInfo.prozent, T.eur(codeInfo.ersparnis)) : T.codeOkNoSum(codeInfo.code, codeInfo.prozent)) + '</span>';
-        else if (codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--warn">' + codeInfo.code + ': ' + (T.codeBad[codeInfo.grund] || T.codeBad.unbekannt) + '</span>';
+        if (codeInfo.gueltig && codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--ok">' + escHtml(codeInfo.ersparnis ? T.codeOk(codeInfo.code, codeInfo.prozent, T.eur(codeInfo.ersparnis)) : T.codeOkNoSum(codeInfo.code, codeInfo.prozent)) + '</span>';
+        else if (codeInfo.art !== 'pilot') html += '<span class="pb-tag pb-tag--warn">' + escHtml(codeInfo.code + ': ' + (T.codeBad[codeInfo.grund] || T.codeBad.unbekannt)) + '</span>';
         html += ' <button type="button" class="pb-link" id="pb-code-del">' + T.codeDel + '</button>';
       } else {
         html += ' <button type="button" class="pb-link" id="pb-code-add">' + T.codeAdd + '</button>';

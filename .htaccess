@@ -1,4 +1,4 @@
-# Lou Digital, Version 30 (29.10.2026)
+# Lou Digital, Version 32 (30.10.2026)
 Options -Indexes -MultiViews
 DirectoryIndex start.html
 ErrorDocument 404 /404.html
@@ -53,7 +53,7 @@ Header unset X-Powered-By
 </IfModule>
 
 # Versteckte Dateien und Hilfsdateien nicht ausliefern
-<FilesMatch "^\.(?!well-known)|\.(md|py|log|bak|sql|ini|sh)$">
+<FilesMatch "^\.(?!well-known)|\.(md|py|log|bak|sql|sqlite|db|ini|sh|env|orig|swp|tmp|dist)$">
 Require all denied
 </FilesMatch>
 

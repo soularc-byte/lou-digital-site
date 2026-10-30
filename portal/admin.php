@@ -59,7 +59,7 @@ case 'auftrag':
   if (!$a) p_go(P_BASE . '/admin/auftraege');
   if ($post) {
     if (isset($_POST['konto'])) { [$id, $err] = a_konto_anlegen($a['email'], $a['name'], $a['firma'], $a['telefon'], '', $a['stufe'], $a['zahlung']); if ($id) { pd_q('UPDATE auftraege SET kunde_id = ? WHERE id = ?', [$id, (int)$a['id']]); p_flash($err !== '' ? $err : 'Konto angelegt, Willkommens-Mail mit Startpasswort ist raus.', $err !== '' ? 'warn' : 'ok'); p_go(P_BASE . '/admin/kunde?id=' . $id); } p_flash($err, 'warn'); p_go(P_BASE . '/admin/auftrag?id=' . (int)$a['id']); }
-    $st = (string)($_POST['status'] ?? $a['status']); if (!isset(LD_STATUS[$st])) $st = $a['status'];
+    $st = p_str('status') !== '' ? p_str('status') : $a['status']; if (!isset(LD_STATUS[$st])) $st = $a['status'];
     $notiz = ld_post('notiz', 2000); $einmalig = max(0, (int)($_POST['einmalig'] ?? $a['einmalig'])); $monatlich = max(0, (int)($_POST['monatlich'] ?? $a['monatlich']));
     pd_q('UPDATE auftraege SET status = ?, notiz = ?, einmalig = ?, monatlich = ?, aktualisiert = ? WHERE id = ?', [$st, $notiz, $einmalig, $monatlich, pd_now(), (int)$a['id']]);
     $a = pd_row('SELECT * FROM auftraege WHERE id = ?', [(int)$a['id']]);
@@ -78,7 +78,7 @@ case 'auftrag':
 /* ===================== Kunden ===================== */
 case 'kunden':
   if ($post) {
-    [$id, $err] = a_konto_anlegen(ld_post('email', 150), ld_line(ld_post('name', 100)), ld_line(ld_post('firma', 120)), ld_line(ld_post('telefon', 30)), ld_line(ld_post('website', 200)), in_array($_POST['stufe'] ?? '', ['S', 'M', 'L'], true) ? (string)$_POST['stufe'] : '', ($_POST['zahlung'] ?? '') === 'jahr' ? 'jahr' : 'monat');
+    [$id, $err] = a_konto_anlegen(ld_post('email', 150), ld_line(ld_post('name', 100)), ld_line(ld_post('firma', 120)), ld_line(ld_post('telefon', 30)), ld_line(ld_post('website', 200)), in_array(p_str('stufe'), ['S', 'M', 'L'], true) ? p_str('stufe') : '', p_str('zahlung') === 'jahr' ? 'jahr' : 'monat');
     if ($id) { p_flash($err !== '' ? $err : 'Konto angelegt, Willkommens-Mail ist raus.', $err !== '' ? 'warn' : 'ok'); p_go(P_BASE . '/admin/kunde?id=' . $id); }
     p_flash($err, 'warn'); p_go(P_BASE . '/admin/kunden');
   }
@@ -92,11 +92,11 @@ case 'kunde':
   if (!$k) p_go(P_BASE . '/admin/kunden');
   $kid = (int)$k['id'];
   if ($post) {
-    $tab = preg_replace('/[^a-z]/', '', (string)($_POST['tab'] ?? '')) ?? '';
+    $tab = preg_replace('/[^a-z]/', '', p_str('tab')) ?? '';
     if ($tab === 'stamm') {
       $web = ld_line(ld_post('website', 200)); $host = $web !== '' && ld_norm_url($web) ? ld_norm_url($web)['host'] : '';
       pd_q('UPDATE kunden SET name = ?, firma = ?, telefon = ?, website = ?, stufe = ?, zahlung = ?, betreuung_seit = ?, minuten_genutzt = ?, notiz = ?, aktiv = ? WHERE id = ?',
-        [ld_line(ld_post('name', 100)), ld_line(ld_post('firma', 120)), ld_line(ld_post('telefon', 30)), $host, in_array($_POST['stufe'] ?? '', ['S', 'M', 'L'], true) ? (string)$_POST['stufe'] : '', ($_POST['zahlung'] ?? '') === 'jahr' ? 'jahr' : 'monat', ld_post('betreuung_seit', 10), max(0, (int)($_POST['minuten_genutzt'] ?? 0)), ld_post('notiz', 3000), isset($_POST['aktiv']) ? 1 : 0, $kid]);
+        [ld_line(ld_post('name', 100)), ld_line(ld_post('firma', 120)), ld_line(ld_post('telefon', 30)), $host, in_array(p_str('stufe'), ['S', 'M', 'L'], true) ? p_str('stufe') : '', p_str('zahlung') === 'jahr' ? 'jahr' : 'monat', ld_post('betreuung_seit', 10), max(0, (int)($_POST['minuten_genutzt'] ?? 0)), ld_post('notiz', 3000), isset($_POST['aktiv']) ? 1 : 0, $kid]);
       p_flash('Gespeichert.');
     }
     if ($tab === 'pwneu') { $pw = ld_passwort_neu(); pd_q('UPDATE kunden SET pass_hash = ?, pass_wechsel = 1 WHERE id = ?', [password_hash($pw, PASSWORD_DEFAULT), $kid]); pd_q('DELETE FROM sitzungen WHERE kunde_id = ?', [$kid]); $ok = p_mail($k, 'Neues Startpasswort – Lou Digital Portal', '<p style="margin:0">Guten Tag ' . h($k['name']) . ',</p><p style="margin:10px 0 0">hier ist Ihr neues Startpasswort für das Kundenportal. Bitte nach dem Anmelden direkt durch ein eigenes ersetzen.</p>', ['E-Mail' => $k['email'], 'Startpasswort' => $pw], p_btn_link(LD_SITE . P_BASE . '/login', 'Zum Kundenportal')); pd_log($kid, 'pw_neu_admin', ''); p_flash($ok ? 'Neues Startpasswort per Mail gesendet.' : 'Mail ging nicht raus. Startpasswort: ' . $pw, $ok ? 'ok' : 'warn'); }
@@ -104,7 +104,7 @@ case 'kunde':
     if ($tab === 'projekt') {
       $titel = ld_line(ld_post('titel', 120)); $pid = (int)($_POST['pid'] ?? 0);
       $schritte = []; foreach (explode("\n", ld_post('schritte', 4000)) as $z) { $z = trim($z); if ($z === '') continue; $ok = false; if (preg_match('/^\[x\]\s*/i', $z)) { $ok = true; $z = preg_replace('/^\[x\]\s*/i', '', $z); } $z = preg_replace('/^\[ ?\]\s*/', '', $z); $t = array_map('trim', explode('|', $z, 3)); $schritte[] = ['t' => $t[0], 'd' => $t[1] ?? '', 'n' => $t[2] ?? '', 'ok' => $ok]; }
-      $st = in_array($_POST['pstatus'] ?? '', ['laufend', 'wartet', 'fertig', 'pause'], true) ? (string)$_POST['pstatus'] : 'laufend';
+      $st = in_array(p_str('pstatus'), ['laufend', 'wartet', 'fertig', 'pause'], true) ? p_str('pstatus') : 'laufend';
       if ($titel === '') p_flash('Titel fehlt.', 'warn');
       elseif ($pid) pd_q('UPDATE projekte SET titel = ?, art = ?, status = ?, schritte = ?, domain = ?, ziel = ?, notiz = ?, aktualisiert = ? WHERE id = ? AND kunde_id = ?', [$titel, ld_post('art', 20), $st, json_encode($schritte, JSON_UNESCAPED_UNICODE), ld_line(ld_post('domain', 120)), ld_line(ld_post('ziel', 60)), ld_post('pnotiz', 2000), pd_now(), $pid, $kid]);
       else pd_q('INSERT INTO projekte (kunde_id, titel, art, status, schritte, domain, ziel, notiz, angelegt, aktualisiert) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [$kid, $titel, ld_post('art', 20), $st, json_encode($schritte, JSON_UNESCAPED_UNICODE), ld_line(ld_post('domain', 120)), ld_line(ld_post('ziel', 60)), ld_post('pnotiz', 2000), pd_now(), pd_now()]);
@@ -113,7 +113,7 @@ case 'kunde':
     if ($tab === 'projektweg') { pd_q('DELETE FROM projekte WHERE id = ? AND kunde_id = ?', [(int)($_POST['pid'] ?? 0), $kid]); p_flash('Projekt gelöscht.'); }
     if ($tab === 'workflow') {
       $wid = (int)($_POST['wid'] ?? 0); $name = ld_line(ld_post('wname', 120));
-      $vals = [$name, ld_post('wbeschreibung', 1000), in_array($_POST['wstatus'] ?? '', ['aktiv', 'pause', 'fehler', 'aufbau'], true) ? (string)$_POST['wstatus'] : 'aktiv', ld_line(ld_post('wausloeser', 160)), ld_post('wletzter', 19), max(0, (int)($_POST['wlaeufe'] ?? 0)), max(0, (int)($_POST['wfehler'] ?? 0)), pd_now()];
+      $vals = [$name, ld_post('wbeschreibung', 1000), in_array(p_str('wstatus'), ['aktiv', 'pause', 'fehler', 'aufbau'], true) ? p_str('wstatus') : 'aktiv', ld_line(ld_post('wausloeser', 160)), ld_post('wletzter', 19), max(0, (int)($_POST['wlaeufe'] ?? 0)), max(0, (int)($_POST['wfehler'] ?? 0)), pd_now()];
       if ($name === '') p_flash('Name fehlt.', 'warn');
       elseif ($wid) pd_q('UPDATE workflows SET name = ?, beschreibung = ?, status = ?, ausloeser = ?, letzter_lauf = ?, laeufe = ?, fehler = ?, aktualisiert = ? WHERE id = ? AND kunde_id = ?', array_merge($vals, [$wid, $kid]));
       else pd_q('INSERT INTO workflows (name, beschreibung, status, ausloeser, letzter_lauf, laeufe, fehler, aktualisiert, kunde_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', array_merge($vals, [$kid]));
@@ -121,7 +121,7 @@ case 'kunde':
     }
     if ($tab === 'workflowweg') { pd_q('DELETE FROM workflows WHERE id = ? AND kunde_id = ?', [(int)($_POST['wid'] ?? 0), $kid]); p_flash('Workflow gelöscht.'); }
     if ($tab === 'dokument') {
-      $f = $_FILES['datei'] ?? null; $titel = ld_line(ld_post('dtitel', 120)); $art = isset($DOK_ART[$_POST['dart'] ?? '']) ? (string)$_POST['dart'] : 'sonstiges';
+      $f = $_FILES['datei'] ?? null; $titel = ld_line(ld_post('dtitel', 120)); $art = isset($DOK_ART[p_str('dart')]) ? p_str('dart') : 'sonstiges';
       if (!$f || ($f['error'] ?? 1) !== UPLOAD_ERR_OK) p_flash('Keine Datei hochgeladen (max. ' . ini_get('upload_max_filesize') . ').', 'warn');
       else {
         $ext = strtolower(pathinfo((string)$f['name'], PATHINFO_EXTENSION));
@@ -138,7 +138,7 @@ case 'kunde':
     if ($tab === 'dokumentweg') { $d = pd_row('SELECT * FROM dokumente WHERE id = ? AND kunde_id = ?', [(int)($_POST['did'] ?? 0), $kid]); if ($d) { @unlink(ld_dir('ld-data') . '/portal-dokumente/' . $kid . '/' . basename($d['datei'])); pd_q('DELETE FROM dokumente WHERE id = ?', [(int)$d['id']]); p_flash('Dokument gelöscht.'); } }
     if ($tab === 'gutschrift') { $b = (int)($_POST['betrag'] ?? 0); $g = ld_line(ld_post('grund', 160)); if ($b !== 0 && $g !== '') { pd_q('INSERT INTO gutschriften (kunde_id, betrag, grund, angelegt) VALUES (?, ?, ?, ?)', [$kid, $b, $g, pd_now()]); pd_log($kid, 'gutschrift', $b . ' € ' . $g); p_flash('Gutschrift eingetragen.'); } else p_flash('Betrag und Grund angeben.', 'warn'); }
     if ($tab === 'nachricht') { $bet = ld_line(ld_post('betreff', 120)); $txt = ld_post('text', 4000); if ($bet !== '' && $txt !== '') { pd_q('INSERT INTO tickets (kunde_id, art, betreff, status, angelegt, aktualisiert) VALUES (?, ?, ?, ?, ?, ?)', [$kid, 'support', $bet, 'wartet', pd_now(), pd_now()]); $tid = (int)pd()->lastInsertId(); pd_q('INSERT INTO nachrichten (ticket_id, von, text, angelegt) VALUES (?, ?, ?, ?)', [$tid, 'lou', $txt, pd_now()]); p_mail($k, 'Nachricht im Kundenportal: ' . $bet, '<p style="margin:0">Guten Tag ' . h($k['name']) . ',</p><p style="margin:10px 0 0">' . nl2br(h($txt)) . '</p>', [], p_btn_link(LD_SITE . P_BASE . '/ticket?id=' . $tid, 'Im Portal antworten')); p_flash('Nachricht gesendet.'); } }
-    if ($tab === 'bericht') { $m = preg_match('/^\d{4}-\d{2}$/', (string)($_POST['monat'] ?? '')) ? (string)$_POST['monat'] : date('Y-m', strtotime('first day of last month')); $id = ld_bericht_ablegen($k, $m, isset($_POST['bmail'])); p_flash($id ? 'Monatsbericht ' . $m . ' abgelegt' . (isset($_POST['bmail']) ? ' und gemailt.' : '.') : 'Für ' . $m . ' gibt es schon einen Bericht.', $id ? 'ok' : 'warn'); }
+    if ($tab === 'bericht') { $m = preg_match('/^\d{4}-\d{2}$/', p_str('monat')) ? p_str('monat') : date('Y-m', strtotime('first day of last month')); $id = ld_bericht_ablegen($k, $m, isset($_POST['bmail'])); p_flash($id ? 'Monatsbericht ' . $m . ' abgelegt' . (isset($_POST['bmail']) ? ' und gemailt.' : '.') : 'Für ' . $m . ' gibt es schon einen Bericht.', $id ? 'ok' : 'warn'); }
     if ($tab === 'pruefen' && $k['website'] !== '') { $r = ld_website_pruefen($kid, $k['website']); p_flash($r ? ($r['ok'] ? 'Online, ' . $r['ms'] . ' ms.' : 'Nicht erreichbar.') : 'Nicht prüfbar.', $r && $r['ok'] ? 'ok' : 'warn'); }
     p_go(P_BASE . '/admin/kunde?id=' . $kid);
   }
@@ -174,7 +174,7 @@ case 'ticket':
   $t = pd_row('SELECT t.*, k.email, k.name, k.firma, k.stufe, k.minuten_genutzt FROM tickets t JOIN kunden k ON k.id = t.kunde_id WHERE t.id = ?', [(int)($_GET['id'] ?? $_POST['id'] ?? 0)]);
   if (!$t) p_go(P_BASE . '/admin/tickets');
   if ($post) {
-    $text = ld_post('text', 4000); $st = isset($TICKET_STATUS[$_POST['status'] ?? '']) ? (string)$_POST['status'] : $t['status']; $min = max(0, (int)($_POST['minuten'] ?? $t['minuten']));
+    $text = ld_post('text', 4000); $st = isset($TICKET_STATUS[p_str('status')]) ? p_str('status') : $t['status']; $min = max(0, (int)($_POST['minuten'] ?? $t['minuten']));
     if ($text !== '') { pd_q('INSERT INTO nachrichten (ticket_id, von, text, angelegt) VALUES (?, ?, ?, ?)', [(int)$t['id'], 'lou', $text, pd_now()]); $k = pd_row('SELECT * FROM kunden WHERE id = ?', [(int)$t['kunde_id']]); if ($k && isset($_POST['mail'])) p_mail($k, 'Antwort im Kundenportal: ' . $t['betreff'], '<p style="margin:0">Guten Tag ' . h($k['name']) . ',</p><p style="margin:10px 0 0">' . nl2br(h($text)) . '</p>', [], p_btn_link(LD_SITE . P_BASE . '/ticket?id=' . (int)$t['id'], 'Im Portal antworten')); }
     $diff = $min - (int)$t['minuten']; if ($diff !== 0) pd_q('UPDATE kunden SET minuten_genutzt = MAX(0, minuten_genutzt + ?) WHERE id = ?', [$diff, (int)$t['kunde_id']]);
     pd_q('UPDATE tickets SET status = ?, minuten = ?, aktualisiert = ? WHERE id = ?', [$st, $min, pd_now(), (int)$t['id']]);
@@ -200,10 +200,10 @@ case 'codes':
       p_go(P_BASE . '/admin/codes');
     }
     if (isset($_POST['pilotmax'])) { pd_q('UPDATE codes SET max_nutzung = ? WHERE code = ?', [max(0, (int)$_POST['pilotmax']), LD_PILOT_CODE]); p_flash('Pilotplätze gesetzt.'); p_go(P_BASE . '/admin/codes'); }
-    $art = in_array($_POST['art'] ?? '', ['aktion', 'empfehlung'], true) ? (string)$_POST['art'] : 'aktion';
+    $art = in_array(p_str('art'), ['aktion', 'empfehlung'], true) ? p_str('art') : 'aktion';
     $auto = isset($_POST['auto']) ? 1 : 0; $titel = ld_line(ld_post('titel', 60));
     $pw = max(0, (int)($_POST['preis_website'] ?? 0)); $pa = max(0, (int)($_POST['preis_automatik'] ?? 0)); $pu = max(0, (int)($_POST['preis_umfrage'] ?? 0)); $proz = max(0, min(100, (int)($_POST['prozent'] ?? 0)));
-    $von = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($_POST['von'] ?? '')) ? (string)$_POST['von'] : ''; $bis = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($_POST['bis'] ?? '')) ? (string)$_POST['bis'] : '';
+    $von = preg_match('/^\d{4}-\d{2}-\d{2}$/', p_str('von')) ? p_str('von') : ''; $bis = preg_match('/^\d{4}-\d{2}-\d{2}$/', p_str('bis')) ? p_str('bis') : '';
     if (strlen($code) < 3) p_flash('Code: mindestens 3 Zeichen (Buchstaben, Zahlen, Bindestrich).', 'warn');
     elseif (pd_row('SELECT 1 FROM codes WHERE code = ?', [$code])) p_flash('Diesen Code gibt es schon.', 'warn');
     elseif ($auto && !$pw && !$pa && !$pu && !$proz) p_flash('Eine Aktion braucht feste Preise oder einen Prozentsatz.', 'warn');
@@ -262,6 +262,13 @@ case 'buero':
     $o .= '</section><section class="p-card"><h2>Einsätze / Aufträge im Büro (' . count($liste['einsaetze'] ?? []) . ')</h2>' . (($liste['einsaetze'] ?? []) ? '<table class="p-table"><tr><th>Kontakt</th><th>Leistung</th><th>Status</th><th>Honorar</th><th>Beginn</th></tr>' . implode('', array_map(function ($e) use ($kn) { $k = $kn[(int)($e['kunde_id'] ?? 0)] ?? null; return '<tr><td>' . h($k ? ($k['firma'] ?: $k['name']) : '#' . (int)($e['kunde_id'] ?? 0)) . '</td><td>' . h((string)($e['leistung'] ?? '')) . '</td><td>' . h((string)($e['status'] ?? '')) . '</td><td>' . p_eur((int)($e['honorar'] ?? 0)) . '</td><td>' . p_datum((string)($e['beginn'] ?? '')) . '</td></tr>'; }, $liste['einsaetze'])) . '</table>' : p_empty('Keine Einsätze.')) . '</section>';
   }
   out('Büro-Eingang', $o);
+
+/* ===================== Statistik (Version 32: hinter dem Büro-Login statt nur hinter Plesk) ===================== */
+case 'statistik':
+  require_once __DIR__ . '/statistik.php';
+  $days = (int)($_GET['d'] ?? 30); if (!in_array($days, [1, 7, 30, 90, 365], true)) $days = 30;
+  $seite = is_string($_GET['seite'] ?? null) ? (string)$_GET['seite'] : '/'; if (!preg_match('~^/[a-z0-9/_.-]{0,80}$~i', $seite)) $seite = '/';
+  out('Statistik', a_statistik($days, $seite));
 
 case 'einstellungen':
   if ($post) {

@@ -165,7 +165,7 @@ case 'dokument':
 /* ===================== Nachrichten / Tickets ===================== */
 case 'nachrichten':
   if ($post) {
-    $art = (string)($_POST['art'] ?? 'support'); if (!isset($TICKET_ART[$art])) $art = 'support';
+    $art = p_str('art'); if (!isset($TICKET_ART[$art])) $art = 'support';
     $betreff = ld_line(ld_post('betreff', 120)); $text = ld_post('text', 4000);
     if (mb_strlen($betreff) < 3 || mb_strlen($text) < 5) p_flash('Bitte Betreff und Nachricht ausfüllen.', 'warn');
     elseif (!ld_rate('ptick' . $kid, 20)) p_flash('Zu viele Nachrichten in kurzer Zeit.', 'warn');
@@ -280,7 +280,7 @@ case 'berichte':
 
 /* ===================== Einstellungen ===================== */
 case 'einstellungen':
-  $tab = preg_replace('/[^a-z]/', '', (string)($_POST['tab'] ?? '')) ?? '';
+  $tab = preg_replace('/[^a-z]/', '', p_str('tab')) ?? '';
   if ($post && $tab === 'profil') {
     $name = ld_line(ld_post('name', 100)); $firma = ld_line(ld_post('firma', 120)); $tel = ld_line(ld_post('telefon', 30)); $web = ld_line(ld_post('website', 200));
     if (mb_strlen($name) < 2) p_flash('Bitte einen Namen angeben.', 'warn');
@@ -289,7 +289,7 @@ case 'einstellungen':
     p_go(P_BASE . '/einstellungen');
   }
   if ($post && $tab === 'passwort') {
-    $alt = (string)($_POST['alt'] ?? ''); $p1 = (string)($_POST['p1'] ?? ''); $p2 = (string)($_POST['p2'] ?? '');
+    $alt = p_str('alt'); $p1 = p_str('p1'); $p2 = p_str('p2');
     if (!password_verify($alt, $me['pass_hash'])) p_flash('Das aktuelle Passwort stimmt nicht.', 'warn');
     elseif ($p1 !== $p2) p_flash('Die neuen Passwörter sind nicht gleich.', 'warn');
     elseif (!p_pw_ok($p1)) p_flash('Mindestens 10 Zeichen, mit Buchstaben und einer Zahl oder einem Sonderzeichen.', 'warn');
@@ -301,7 +301,7 @@ case 'einstellungen':
     p_go(P_BASE . '/einstellungen');
   }
   if ($post && $tab === 'email') {
-    $neu = strtolower(ld_line(ld_post('email', 150))); $pw = (string)($_POST['pw'] ?? '');
+    $neu = strtolower(ld_line(ld_post('email', 150))); $pw = p_str('pw');
     if (!password_verify($pw, $me['pass_hash'])) p_flash('Das Passwort stimmt nicht.', 'warn');
     elseif (!filter_var($neu, FILTER_VALIDATE_EMAIL) || $neu === $me['email']) p_flash('Bitte eine neue, gültige E-Mail-Adresse angeben.', 'warn');
     elseif (pd_row('SELECT 1 FROM kunden WHERE email = ?', [$neu])) p_flash('Diese Adresse wird schon verwendet.', 'warn');
@@ -310,8 +310,8 @@ case 'einstellungen':
   }
   if ($post && $tab === 'zfa') {
     if (isset($_POST['start'])) { $sec = ld_b32(random_bytes(20)); pd_q('UPDATE kunden SET totp_secret = ?, totp_aktiv = 0 WHERE id = ?', [$sec, $kid]); p_go(P_BASE . '/einstellungen#zfa'); }
-    if (isset($_POST['aktivieren'])) { if ($me['totp_secret'] !== '' && ld_totp_ok($me['totp_secret'], (string)($_POST['code'] ?? ''))) { pd_q('UPDATE kunden SET totp_aktiv = 1 WHERE id = ?', [$kid]); pd_q('UPDATE sitzungen SET zfa = 1 WHERE id = ?', [$sess['id']]); pd_log($kid, '2fa_an', ''); p_mail($me, 'Zweiter Faktor eingeschaltet – Lou Digital Portal', '<p style="margin:0">Für Ihr Kundenportal ist jetzt der zweite Faktor (Authenticator-App) aktiv. Falls Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail.</p>'); p_flash('Zweiter Faktor ist aktiv.'); } else p_flash('Der Code stimmt nicht. Bitte den aktuellen Code aus der App eingeben.', 'warn'); }
-    if (isset($_POST['aus'])) { if (password_verify((string)($_POST['pw'] ?? ''), $me['pass_hash']) && ld_totp_ok($me['totp_secret'], (string)($_POST['code'] ?? ''))) { pd_q("UPDATE kunden SET totp_secret = '', totp_aktiv = 0 WHERE id = ?", [$kid]); pd_log($kid, '2fa_aus', ''); p_mail($me, 'Zweiter Faktor ausgeschaltet – Lou Digital Portal', '<p style="margin:0">Der zweite Faktor für Ihr Kundenportal wurde ausgeschaltet. Falls Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail.</p>'); p_flash('Zweiter Faktor ausgeschaltet.'); } else p_flash('Passwort oder Code stimmen nicht.', 'warn'); }
+    if (isset($_POST['aktivieren'])) { if ($me['totp_secret'] !== '' && ld_totp_login($kid, $me['totp_secret'], ld_post('code', 10))) { pd_q('UPDATE kunden SET totp_aktiv = 1 WHERE id = ?', [$kid]); pd_q('UPDATE sitzungen SET zfa = 1 WHERE id = ?', [$sess['id']]); pd_log($kid, '2fa_an', ''); p_mail($me, 'Zweiter Faktor eingeschaltet – Lou Digital Portal', '<p style="margin:0">Für Ihr Kundenportal ist jetzt der zweite Faktor (Authenticator-App) aktiv. Falls Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail.</p>'); p_flash('Zweiter Faktor ist aktiv.'); } else p_flash('Der Code stimmt nicht. Bitte den aktuellen Code aus der App eingeben.', 'warn'); }
+    if (isset($_POST['aus'])) { if (password_verify(p_str('pw'), $me['pass_hash']) && ld_totp_login($kid, $me['totp_secret'], ld_post('code', 10))) { pd_q("UPDATE kunden SET totp_secret = '', totp_aktiv = 0 WHERE id = ?", [$kid]); pd_log($kid, '2fa_aus', ''); p_mail($me, 'Zweiter Faktor ausgeschaltet – Lou Digital Portal', '<p style="margin:0">Der zweite Faktor für Ihr Kundenportal wurde ausgeschaltet. Falls Sie das nicht waren, antworten Sie bitte sofort auf diese E-Mail.</p>'); p_flash('Zweiter Faktor ausgeschaltet.'); } else p_flash('Passwort oder Code stimmen nicht.', 'warn'); }
     if (isset($_POST['abbrechen'])) { pd_q("UPDATE kunden SET totp_secret = '' WHERE id = ? AND totp_aktiv = 0", [$kid]); }
     p_go(P_BASE . '/einstellungen#zfa');
   }
