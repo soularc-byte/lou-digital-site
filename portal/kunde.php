@@ -1,13 +1,10 @@
 <?php
-/* Lou Digital – Kundenportal: Seiten für Kunden (Version 30, 29.10.2026). Wird von index.php eingebunden. */
+/* Lou Digital – Kundenportal: Seiten für Kunden (Version 34, 31.10.2026). Wird von index.php eingebunden.
+   Version 34: Betreuung aus dem Leistungskatalog (S/M/L/E), Seite „Fragebogen“, Tiefen-Check auf der Website-Seite. */
 declare(strict_types=1);
 if (!defined('LD') || !isset($me)) { http_response_code(404); exit; }
 $kid = (int)$me['id'];
-$BETREUUNG = [
-  'S' => ['name' => 'Betreuung S', 'preis' => 29, 'min' => 0, 'punkte' => ['Erreichbarkeit alle 5 Minuten geprüft, bei Ausfall kümmere ich mich', 'Tägliche Sicherung, 30 Tage aufbewahrt', 'Updates und Sicherheitsprüfung monatlich', 'SSL-Zertifikat und Domain-Laufzeit im Blick', 'Monatsbericht mit Erreichbarkeit und Ladezeit', 'Änderungen 15 € je angefangene 15 Minuten', 'Antwort in 2 Werktagen']],
-  'M' => ['name' => 'Betreuung M', 'preis' => 49, 'min' => 30, 'punkte' => ['Alles aus S, Sicherung 90 Tage', 'Updates und Sicherheitsprüfung wöchentlich', 'Formular-Test monatlich', '30 Minuten Änderungen im Monat', 'Antwort in 1 Werktag', 'Website-Check halbjährlich']],
-  'L' => ['name' => 'Betreuung L', 'preis' => 79, 'min' => 60, 'punkte' => ['Alles aus M, Sicherung 12 Monate', 'Formular-Test wöchentlich', '60 Minuten Änderungen im Monat, danach 12 € je 15 Min.', 'Antwort am selben Werktag', 'Website-Check vierteljährlich', 'Betreuung der Anfrage-Automatik (Workflows, Tabellen, Nachrichten)']],
-];
+$BETREUUNG = []; foreach (ld_katalog()['betreuung']['stufen'] as $bs => $bt) $BETREUUNG[$bs] = ['name' => $bt['name'], 'motto' => $bt['motto'], 'preis' => (int)$bt['preis'], 'min' => (int)$bt['min'], 'punkte' => $bt['punkte']];   // Version 34: aus dem Leistungskatalog
 $TICKET_ART = ['support' => 'Support', 'aenderung' => 'Änderungswunsch', 'frage' => 'Frage', 'upgrade' => 'Betreuung ändern'];
 $TICKET_STATUS = ['offen' => 'Offen', 'in_arbeit' => 'In Arbeit', 'wartet' => 'Wartet auf Sie', 'erledigt' => 'Erledigt'];
 $DOK_ART = ['angebot' => 'Angebot', 'vertrag' => 'Vertrag', 'rechnung' => 'Rechnung', 'bericht' => 'Bericht', 'zugang' => 'Zugänge', 'sonstiges' => 'Sonstiges'];
@@ -70,6 +67,8 @@ case '':
   $k .= '<a class="p-kpi" href="' . P_BASE . '/betreuung"><b>' . ($b ? h($me['stufe']) : 'keine') . '</b><span>' . ($b ? 'Betreuung · ' . ($b['min'] ? max(0, $b['min'] - (int)$me['minuten_genutzt']) . ' von ' . $b['min'] . ' Min. frei' : 'Änderungen nach Aufwand') : 'Betreuung – jederzeit buchbar') . '</span></a>';
   $k .= '<a class="p-kpi" href="' . P_BASE . '/nachrichten"><b>' . $offen . '</b><span>' . ($offen === 1 ? 'offene Nachricht' : 'offene Nachrichten') . '</span></a>';
   $k .= '<a class="p-kpi" href="' . P_BASE . '/empfehlen"><b>' . p_eur($guthaben) . '</b><span>Guthaben aus Empfehlungen</span></a>';
+  $fbOffen = (int)pd_row("SELECT COUNT(*) c FROM fragebogen WHERE kunde_id = ? AND freigabe = 1 AND status <> 'beantwortet'", [$kid])['c'];
+  if ($fbOffen) $k .= '<a class="p-kpi p-kpi--hinweis" href="' . P_BASE . '/fragebogen"><b>' . $fbOffen . '</b><span>' . ($fbOffen === 1 ? 'Fragebogen wartet auf Ihre Antworten' : 'Fragebögen warten auf Ihre Antworten') . '</span></a>';
   $k .= '</div>';
   $letzte = pd_all("SELECT t.id, t.betreff, t.status, t.art, n.von, n.text, n.angelegt FROM tickets t JOIN nachrichten n ON n.ticket_id = t.id WHERE t.kunde_id = ? AND t.art <> 'bot' ORDER BY n.id DESC LIMIT 4", [$kid]);
   $l = '';
@@ -95,6 +94,37 @@ case 'projekt':
   out('Projekt', $o);
 
 /* ===================== Website ===================== */
+/* ===================== Fragebogen (Version 34) ===================== */
+case 'fragebogen':
+  $KAT = ld_katalog(); $FB_NAMEN = ['website' => 'Fragebogen Website in 7 Tagen', 'automatik' => 'Fragebogen Anfrage-Automatik', 'umfrage' => 'Fragebogen Kundenumfrage', 'tiefencheck' => 'Fragebogen Tiefen-Check', 'betreuung' => 'Fragebogen Betreuung', 'aenderung' => 'Änderungswunsch', 'exklusiv' => 'Bedarf Betreuung E'];
+  $rows = pd_all('SELECT * FROM fragebogen WHERE kunde_id = ? AND freigabe = 1 ORDER BY id DESC', [$kid]);
+  $l = preg_replace('/[^a-z]/', '', ld_get('l') ?: p_str('l')) ?? '';
+  $row = null; foreach ($rows as $r) if ($r['leistung'] === $l) $row = $r;
+  if (!$row && $rows && $l === '') { $row = $rows[0]; $l = $row['leistung']; }
+  if ($post && $row && isset($KAT['fragebogen'][$l])) {
+    $ant = json_decode((string)$row['antworten'], true) ?: [];
+    foreach ($KAT['fragebogen'][$l] as [$fid, $frage, $hinweis]) if (isset($_POST['a'][$fid]) && is_string($_POST['a'][$fid])) { $v = str_replace(["\r\n", "\r"], "\n", $_POST['a'][$fid]); $ant[$fid] = trim(mb_substr(preg_replace('/[^\P{C}\n\t]/u', '', $v) ?? '', 0, 2000)); }
+    $fertig = isset($_POST['abschicken']);
+    pd_q('UPDATE fragebogen SET antworten = ?, status = ?, aktualisiert = ? WHERE id = ?', [json_encode($ant, JSON_UNESCAPED_UNICODE), $fertig ? 'beantwortet' : 'offen', pd_now(), (int)$row['id']]);
+    pd_log($kid, 'fragebogen', $l . ($fertig ? ' abgeschickt' : ' zwischengespeichert'));
+    if ($fertig) { p_adrian('Fragebogen beantwortet: ' . ($FB_NAMEN[$l] ?? $l) . ' – ' . ($me['firma'] !== '' ? $me['firma'] : $me['name']), $me['name'] . ' hat den Fragebogen „' . ($FB_NAMEN[$l] ?? $l) . '“ abgeschickt. Antworten in der Prompt-Werkstatt: ' . LD_SITE . P_BASE . '/admin/prompts?l=' . ($l === 'aenderung' || $l === 'betreuung' ? 'betreuung' : $l) . '&k=' . $kid); p_flash('Danke! Ihre Antworten sind bei mir. Ich melde mich mit dem nächsten Schritt.'); }
+    else p_flash('Zwischengespeichert. Sie können jederzeit weitermachen.');
+    p_go(P_BASE . '/fragebogen?l=' . $l);
+  }
+  $o = '<h1 class="p-h1">Fragebogen</h1><p class="p-lead">Mit Ihren Antworten kann ich direkt loslegen. Stichpunkte reichen, Dateien schicken Sie einfach als Nachricht oder per E-Mail.</p>';
+  if (!$rows) $o .= '<section class="p-card">' . p_empty('Gerade ist kein Fragebogen offen. Sobald ich Angaben von Ihnen brauche, erscheint er hier und Sie bekommen eine E-Mail.') . '</section>';
+  else {
+    if (count($rows) > 1) { $o .= '<p class="p-tabs">'; foreach ($rows as $r) $o .= '<a href="' . P_BASE . '/fragebogen?l=' . h($r['leistung']) . '"' . ($r['leistung'] === $l ? ' class="on"' : '') . '>' . h($FB_NAMEN[$r['leistung']] ?? $r['leistung']) . ($r['status'] === 'beantwortet' ? ' ✓' : '') . '</a>'; $o .= '</p>'; }
+    if ($row && isset($KAT['fragebogen'][$l])) {
+      $ant = json_decode((string)$row['antworten'], true) ?: [];
+      $o .= '<section class="p-card"><div class="p-card-head"><h2>' . h($FB_NAMEN[$l] ?? $l) . '</h2>' . ($row['status'] === 'beantwortet' ? '<span class="p-badge p-badge--ok">abgeschickt ' . p_datum($row['aktualisiert'], true) . '</span>' : '<span class="p-badge">offen</span>') . '</div><form method="post" class="p-form p-form--wide">' . p_form($csrf) . '<input type="hidden" name="l" value="' . h($l) . '"><ol class="p-fragen">';
+      foreach ($KAT['fragebogen'][$l] as [$fid, $frage, $hinweis]) $o .= '<li><label>' . h($frage) . ($hinweis !== '' ? '<small class="p-muted">' . h($hinweis) . '</small>' : '') . '<textarea name="a[' . $fid . ']" rows="2" maxlength="2000">' . h((string)($ant[$fid] ?? '')) . '</textarea></label></li>';
+      $o .= '</ol><div class="p-actions"><button class="btn btn--primary btn--small" type="submit" name="abschicken" value="1">Abschicken</button><button class="btn btn--line btn--small" type="submit">Zwischenspeichern</button></div><p class="p-small p-muted">Passwörter oder Zugangsdaten bitte nie hier eintragen; die besprechen wir am Telefon.</p></form></section>';
+    }
+  }
+  out('Fragebogen', $o);
+
+/* ===================== Website ===================== */
 case 'website':
   if ($post && isset($_POST['pruefen'])) {
     if ($website === '') p_flash('Es ist noch keine Website hinterlegt. Schreiben Sie mir kurz die Adresse.', 'warn');
@@ -106,6 +136,8 @@ case 'website':
   $hist = pd_all('SELECT ok, ms, zeit FROM pruefungen WHERE kunde_id = ? ORDER BY id DESC LIMIT 96', [$kid]);
   $bars = ''; foreach (array_reverse($hist) as $x) { $hgt = max(6, min(100, (int)round((int)$x['ms'] / 20))); $bars .= '<i class="' . ((int)$x['ok'] ? 'ok' : 'bad') . '" style="height:' . $hgt . '%" title="' . p_datum($x['zeit'], true) . ': ' . ((int)$x['ok'] ? (int)$x['ms'] . ' ms' : 'Störung') . '"></i>'; }
   $ssl = $pr && $pr['ssl_bis'] !== '' ? $pr['ssl_bis'] : ''; $sslTage = $ssl !== '' ? (int)floor((strtotime($ssl) - time()) / 86400) : null;
+  $tc = pd_row("SELECT * FROM tiefenchecks WHERE kunde_id = ? AND status IN ('fertig', 'gesendet') ORDER BY id DESC LIMIT 1", [$kid]); $tcBlock = '';
+  if ($tc) { require_once dirname(__DIR__) . '/api/inc/tiefencheck.php'; $tca = tc_auswertung(json_decode((string)$tc['punkte'], true) ?: []); $tcBlock = '<section class="p-card"><h2>Tiefen-Check vom ' . p_datum($tc['aktualisiert']) . '</h2><div class="p-kpis"><div class="p-kpi"><b>' . $tca['score'] . ' / 100</b><span>Gesamtwert</span></div><div class="p-kpi"><b>' . $tca['sofort'] . '</b><span>Sofort-Maßnahmen</span></div><div class="p-kpi"><b>' . $tca['bald'] . '</b><span>Bald</span></div><div class="p-kpi"><b>' . $tca['spaeter'] . '</b><span>Später</span></div></div>' . ($tc['zusammenfassung'] !== '' ? '<p>' . nl2br(h($tc['zusammenfassung'])) . '</p>' : '') . ($tca['massnahmen'] ? '<ol class="p-ol">' . implode('', array_map(function ($m) { return '<li><b>' . h($m['titel']) . '</b> – ' . h($m['empf']) . ' <span class="p-muted">(' . TC_PRIO[$m['prio']] . ')</span></li>'; }, array_slice($tca['massnahmen'], 0, 5))) . '</ol>' : '') . ((int)$tc['dokument_id'] ? '<p class="p-small"><a class="btn btn--line btn--small" href="' . P_BASE . '/dokument?id=' . (int)$tc['dokument_id'] . '">Bericht als PDF</a></p>' : '') . '</section>'; }
   $k = '<div class="p-kpis"><div class="p-kpi"><b>' . ($pr ? ((int)$pr['ok'] ? 'online' : 'Störung') : '–') . '</b><span>Letzte Prüfung ' . ($pr ? p_datum($pr['zeit'], true) : '–') . '</span></div>'
      . '<div class="p-kpi"><b>' . ($pr ? (int)$pr['ms'] . ' ms' : '–') . '</b><span>Antwortzeit' . ($v30['ms'] ? ' · Ø 30 Tage ' . $v30['ms'] . ' ms' : '') . '</span></div>'
      . '<div class="p-kpi"><b>' . ($v30['prozent'] !== null ? number_format($v30['prozent'], 2, ',', '.') . ' %' : '–') . '</b><span>Erreichbarkeit 30 Tage (' . $v30['n'] . ' Prüfungen)</span></div>'
@@ -113,7 +145,7 @@ case 'website':
   out('Website', '<h1 class="p-h1">Website</h1><p class="p-lead">' . ($website !== '' ? '<a href="https://' . h(preg_replace('~^https?://~', '', $website)) . '" rel="noopener" target="_blank">' . h($website) . '</a>' : 'Noch keine Adresse hinterlegt.') . '</p>' . $k
     . '<section class="p-card"><div class="p-card-head"><h2>Verlauf der letzten Prüfungen</h2><form method="post">' . p_form($csrf) . '<button class="btn btn--line btn--small" name="pruefen" value="1" type="submit">Jetzt prüfen</button></form></div>'
     . ($bars ? '<div class="p-chart" aria-label="Antwortzeiten">' . $bars . '</div><p class="p-small p-muted">Balkenhöhe = Antwortzeit, rot = nicht erreichbar. Geprüft wird alle 5 Minuten automatisch und auf Knopfdruck.</p>' : p_empty('Noch keine Prüfungen. Klicken Sie auf „Jetzt prüfen“.')) . '</section>'
-    . '<section class="p-card"><h2>Was überwacht wird</h2><ul class="haken p-haken"><li>Erreichbarkeit und Antwortzeit (alle 5 Minuten)</li><li>Zertifikat (HTTPS) und Ablaufdatum</li><li>Bei Störung: Nachricht an mich, Beginn der Hilfe am selben Werktag (mit Betreuung)</li><li>Die 100 Prüfpunkte des Website-Checks einmal im Quartal (Bericht unter „Dokumente“)</li></ul></section>');
+    . '<section class="p-card"><h2>Was überwacht wird</h2><ul class="haken p-haken"><li>Erreichbarkeit und Antwortzeit (alle 5 Minuten)</li><li>Zertifikat (HTTPS) und Ablaufdatum</li><li>Bei Störung: Nachricht an mich, Wiederherstellung je nach Betreuungsstufe (S: 2 Werktage, M: 1 Werktag, L: am selben Werktag)</li><li>Technik-Durchgang mit Formular-Test monatlich (L: wöchentlich)</li><li>Tiefen-Check von Hand einmal im Jahr in Betreuung L (Bericht unter „Dokumente“)</li></ul></section>' . $tcBlock);
 
 /* ===================== Betreuung ===================== */
 case 'betreuung':
@@ -121,17 +153,19 @@ case 'betreuung':
   $o = '<h1 class="p-h1">Betreuung</h1>';
   if ($b) {
     $frei = max(0, $b['min'] - (int)$me['minuten_genutzt']);
-    $o .= '<p class="p-lead">' . h($b['name']) . ' · ' . p_eur($b['preis']) . ($me['zahlung'] === 'jahr' ? '/Monat, jährlich bezahlt (' . p_eur($b['preis'] * 10) . '/Jahr)' : '/Monat, monatlich kündbar') . ($me['betreuung_seit'] !== '' ? ' · seit ' . p_datum($me['betreuung_seit']) : '') . '</p>'
-        . '<div class="p-kpis">' . ($b['min'] ? '<div class="p-kpi"><b>' . $frei . ' Min.</b><span>frei in ' . date('m/Y') . ' (von ' . $b['min'] . ')</span><i class="p-bar"><i style="width:' . min(100, (int)round((int)$me['minuten_genutzt'] / $b['min'] * 100)) . '%"></i></i></div>' : '') . '<div class="p-kpi"><b>' . (int)$me['minuten_genutzt'] . ' Min.</b><span>' . ($b['min'] ? 'genutzt in diesem Monat' : 'Änderungen in diesem Monat (15 € je 15 Min.)') . '</span></div></div>'
+    $o .= '<p class="p-lead">' . h($b['name']) . ' · ' . ($b['preis'] ? p_eur($b['preis']) . ($me['zahlung'] === 'jahr' ? '/Monat, jährlich bezahlt (' . p_eur($b['preis'] * LD_JAHR_MONATE) . '/Jahr)' : '/Monat, monatlich kündbar') : 'Preis laut Vertrag') . ($me['betreuung_seit'] !== '' ? ' · seit ' . p_datum($me['betreuung_seit']) : '') . '</p>'
+        . '<div class="p-kpis">' . ($b['min'] ? '<div class="p-kpi"><b>' . $frei . ' Min.</b><span>frei in ' . date('m/Y') . ' (von ' . $b['min'] . ')</span><i class="p-bar"><i style="width:' . min(100, (int)round((int)$me['minuten_genutzt'] / $b['min'] * 100)) . '%"></i></i></div>' : '') . '<div class="p-kpi"><b>' . (int)$me['minuten_genutzt'] . ' Min.</b><span>' . ($b['min'] ? 'genutzt in diesem Monat' : 'Änderungen in diesem Monat (' . LD_STUNDE . ' € je Stunde, in 5-Minuten-Schritten)') . '</span></div></div>'
         . '<section class="p-card"><h2>Enthalten</h2><ul class="haken p-haken">'; foreach ($b['punkte'] as $x) $o .= '<li>' . h($x) . '</li>'; $o .= '</ul></section>';
     $ab = pd_all("SELECT betreff, minuten, aktualisiert FROM tickets WHERE kunde_id = ? AND minuten > 0 ORDER BY id DESC LIMIT 12", [$kid]);
     $o .= '<section class="p-card"><h2>Abgerechnete Änderungen</h2>' . ($ab ? '<table class="p-table"><tr><th>Wunsch</th><th>Minuten</th><th>Datum</th></tr>' . implode('', array_map(function ($x) { return '<tr><td>' . h($x['betreff']) . '</td><td>' . (int)$x['minuten'] . '</td><td>' . p_datum($x['aktualisiert']) . '</td></tr>'; }, $ab)) . '</table>' : p_empty('Noch keine Änderungen abgerechnet.')) . '</section>';
   } else {
-    $o .= '<p class="p-lead">Sie haben derzeit keine Betreuung. Ihre Website gehört Ihnen genauso; Änderungen rechne ich nach Aufwand ab (15 € je angefangene 15 Minuten).</p>';
+    $o .= '<p class="p-lead">Sie haben derzeit keine Betreuung. Ihre Website gehört Ihnen genauso; Änderungen rechne ich nach Aufwand ab (' . LD_STUNDE . ' € je Stunde, erfasst in 5-Minuten-Schritten, mindestens 15 Minuten je Auftrag).</p>';
   }
   $o .= '<section class="p-card"><h2>Stufen im Vergleich</h2><div class="p-tiers">';
-  foreach ($BETREUUNG as $st => $t) $o .= '<div class="p-tier' . ($me['stufe'] === $st ? ' on' : '') . '"><h3>' . h($t['name']) . '</h3><b>' . p_eur($t['preis']) . '<small>/Monat</small></b><ul>' . implode('', array_map(function ($x) { return '<li>' . h($x) . '</li>'; }, $t['punkte'])) . '</ul>' . ($me['stufe'] === $st ? '<span class="p-badge p-badge--ok">Ihre Stufe</span>' : '<a class="btn btn--line btn--small" href="' . P_BASE . '/nachrichten?neu=upgrade&betreff=' . rawurlencode('Betreuung ' . $st . ' ' . ($me['stufe'] === '' ? 'buchen' : 'statt ' . $me['stufe'])) . '">' . ($me['stufe'] === '' ? 'Buchen' : 'Wechseln') . '</a>') . '</div>';
-  $o .= '</div><p class="p-small p-muted">Jahreszahlung: zehn Monatsbeiträge für zwölf Monate. Wechsel zum Monatsende, Kündigung jederzeit zum Monatsende (bei Jahreszahlung zum Jahresende). Ohne Umsatzsteuer (§ 19 UStG).</p></section>';
+  foreach ($BETREUUNG as $st => $t) $o .= '<div class="p-tier' . ($me['stufe'] === $st ? ' on' : '') . '"><h3>' . h($t['name']) . '</h3><p class="p-small p-muted">' . h($t['motto']) . '</p><b>' . ($t['preis'] ? p_eur($t['preis']) . '<small>/Monat</small>' : '<small>nach Absprache</small>') . '</b><ul>' . implode('', array_map(function ($x) { return '<li>' . h($x) . '</li>'; }, $t['punkte'])) . '</ul>' . ($me['stufe'] === $st ? '<span class="p-badge p-badge--ok">Ihre Stufe</span>' : '<a class="btn btn--line btn--small" href="' . P_BASE . '/nachrichten?neu=upgrade&betreff=' . rawurlencode('Betreuung ' . $st . ' ' . ($me['stufe'] === '' ? 'buchen' : 'statt ' . $me['stufe'])) . '">' . ($me['stufe'] === '' ? 'Buchen' : 'Wechseln') . '</a>') . '</div>';
+  $ae = ld_katalog()['betreuung']['aenderung'];
+  $o .= '</div><p class="p-small p-muted">Jahreszahlung: zehn Monatsbeiträge für zwölf Monate. Wechsel zum Monatsende, Kündigung jederzeit zum Monatsende (bei Jahreszahlung zum Jahresende). Ohne Umsatzsteuer (§ 19 UStG).</p></section>'
+     . '<section class="p-card"><h2>Änderungszeit: was zählt</h2><div class="p-grid3"><div><h3>Zählt als Änderung</h3><ul class="haken p-haken">' . implode('', array_map(function ($x) { return '<li>' . h($x) . '</li>'; }, $ae['zaehlt'])) . '</ul></div><div><h3>Zählt nicht (Festpreis vorab)</h3><ul class="p-minus">' . implode('', array_map(function ($x) { return '<li>' . h($x) . '</li>'; }, $ae['zaehlt_nicht'])) . '</ul></div><div><h3>Regeln</h3><ul class="p-minus p-minus--neutral">' . implode('', array_map(function ($x) { return '<li>' . h($x) . '</li>'; }, $ae['regeln'])) . '</ul></div></div><p class="p-small p-muted">Beispiele: ' . h(implode(' · ', array_map(function ($b) { return $b[0] . ' ≈ ' . $b[1] . ' Min.'; }, $ae['beispiele']))) . '</p></section>';
   out('Betreuung', $o);
 
 /* ===================== Workflows ===================== */

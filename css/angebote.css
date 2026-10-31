@@ -1,4 +1,5 @@
-/* Lou Digital – Angebote im Detail (Version 28, 28.10.2026). Ergänzt site.css auf /pakete und /individuell (DE und EN).
+/* Lou Digital – Angebote im Detail (Version 34, 31.10.2026). Ergänzt site.css auf /pakete und /individuell (DE und EN).
+   Version 34: Umschalter monatlich/jährlich, Betreuung S/M/L/E in einer Tabelle, Änderungszeit-Listen, Tiefen-Check.
    i-Knöpfe an jedem Angebot, Detailfelder mit Inhalt und Zusatzdiensten, Betreuung im Vergleich, Zusatzdienste mit Preisen,
    Baukasten mit Mengen. Bewegung abbremsend, bei weniger Bewegung ohne Wege. */
 :root { --ab: cubic-bezier(.05,.7,.1,1); }
@@ -197,3 +198,46 @@ html:not(.js) .mehr-i, html:not(.js) .opt-i { display: none; }
 .pickbar.pulse .pb-in { animation: pb-pulse .9s var(--ease); }
 @keyframes pb-pulse { 0% { transform: translateY(0) scale(1); } 30% { transform: translateY(-4px) scale(1.02); } 100% { transform: none; } }
 .sec .rab-grid--pick + .table { margin-top: clamp(28px, 4vw, 44px); }
+
+/* ---------- Version 34: Zahlweise, vier Stufen, Änderungszeit ---------- */
+.zw-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 16px; }
+.zw-bar-t { font-size: 15px; font-weight: 600; }
+.zw-hint { font-size: 14px; color: var(--ink-muted); }
+.zw { display: inline-flex; padding: 3px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--raised); }
+.zw-btn { font: 600 14px/1.2 var(--font-sans); color: var(--ink-muted); background: none; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background-color .25s var(--ease), color .25s var(--ease); }
+.zw-btn small { font: 500 12px/1 var(--font-mono); opacity: .8; }
+.zw-btn[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.zw-btn:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.mehr-teil .zw { margin: 0 0 14px; }
+.mehr-teil--voll { grid-column: 1 / -1; }
+.vgl--4 thead th:first-child { width: 40%; }
+.vgl--4 .vgl-wert { font-size: 12.5px; }
+.vgl--4 tbody th { font-size: 14px; }
+.vgl .vgl-preis--jahr th, .vgl .vgl-preis--jahr td { color: var(--ink-muted); }
+.vgl .vgl-preis.is-on th, .vgl .vgl-preis.is-on td { color: var(--ink); background: rgba(210,240,90,.28); }
+.vgl .vgl-preis.is-on td { color: var(--brand); }
+.vgl[data-wahl="E"] tr > :nth-child(5) { background: rgba(220,239,235,.6); }
+.tier--e small { font-size: 10.5px; letter-spacing: .02em; }
+.ae-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2.5vw, 32px); }
+.ae-grid h4 { font-size: 14.5px; font-weight: 600; color: var(--ink-muted); margin: 0 0 10px; }
+.ae-grid ul { gap: 8px; }
+.ae-grid li { font-size: 14.5px; }
+.rab-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 15px; line-height: 1.5; color: var(--ink-muted); }
+.rab-liste li b { color: var(--ink); }
+.stufen { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: clamp(20px, 3vw, 32px); }
+.stufe { display: grid; align-content: start; gap: 10px; padding: 20px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-card, 14px); }
+.stufe h3 { font-size: 18px; margin: 0; display: grid; gap: 2px; }
+.stufe-m { font: 500 13px/1.3 var(--font-sans); color: var(--ink-muted); }
+.stufe-p { font-size: 15px; color: var(--ink-muted); margin: 0; }
+.stufe-p b { font-size: 24px; color: var(--brand); letter-spacing: -.02em; }
+.stufe ul { gap: 7px; }
+.stufe li { font-size: 14px; }
+@media (max-width: 980px) { .ae-grid, .stufen { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) {
+  .ae-grid, .stufen { grid-template-columns: minmax(0, 1fr); }
+  .vgl--4 { font-size: 12.5px; }
+  .vgl--4 thead th:first-child { width: 34%; }
+  .vgl--4 th, .vgl--4 td { padding: 8px 2px; }
+  .vgl--4 .vgl-wert { font-size: 11px; }
+  .zw-btn small { display: none; }
+}

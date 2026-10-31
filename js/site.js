@@ -3,7 +3,8 @@
    Version 26 (28.10.2026): Blockregale links und rechts, Knopf zum Anhalten
    Version 27 (28.10.2026): Kopfzeile passt sich an (große Schrift auf Android, schmale Handys, Tablets)
    Version 29 (29.10.2026): Menü fährt aus, Fußzeile zur Startseite, Kombi-Rabatt in der Paketauswahl
-   Version 28 (29.10.2026): Blöcke bewegen sich immer (bei „weniger Bewegung“ ruhig), Tempo atmet, Logo unten führt nach oben, Karten neigen sich */
+   Version 28 (29.10.2026): Blöcke bewegen sich immer (bei „weniger Bewegung“ ruhig), Tempo atmet, Logo unten führt nach oben, Karten neigen sich
+   Version 34 (31.10.2026): Leistungskatalog v2 – Tiefen-Check als Paket, Betreuung E, Umschalter monatlich/jährlich (Tabelle, Leiste, Baukasten, Kontakt) */
 (function () {
   'use strict';
   window.__ldReady = true;
@@ -19,7 +20,7 @@
     okText: 'You will receive a confirmation by email in a moment. I will reply personally, usually within 24 hours on working days.',
     reqSel: 'Request this selection', reqCheck: 'Request the free check', freeNote: 'The check is free and without obligation. Add building blocks for a price.',
     askOk: 'Thank you, your question has arrived.', askSend: 'Send question',
-    picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off', kombi: ' incl. 10% bundle discount', perYear: '/year (two months free)', firstFree: ', first month free',
+    picked: function (n) { return n === 1 ? '1 package selected' : n + ' packages selected'; }, perMonth: '/month', oneOff: ' one-off', kombi: ' incl. 10% bundle discount', perYear: '/year (12 months for the price of 10)', firstFree: ', first month free', anrech: ', in-depth check credited', tierE: 'Maintenance E: price by arrangement', perMonthShort: '/month', perYearShort: '/year', zwLabelM: 'per month', zwLabelJ: 'per year', zwHintM: 'Cancel monthly at the end of the month.', zwHintJ: 'Paid in advance for 12 months, two months free.',
     pilotOn: function (n, left) { return 'Code PILOT active: you save ' + n + ' vs. the regular price' + (left ? ' (' + left + ' of 5 pilot slots left)' : ''); }, pilotOff: 'Pilot phase finished, regular prices apply.',
     aktionOn: function (t, c, n, left) { return 'Promotion ' + t + ' (code ' + c + ') active: you save ' + n + (left ? ' (' + left + ' left)' : ''); },
     codeOk: function (c, p, n) { return 'Code ' + c + ' (' + p + '%): −' + n; }, codeOkNoSum: function (c, p) { return 'Code ' + c + ' (' + p + '%) applies to your first package.'; },
@@ -39,7 +40,7 @@
     okText: 'Sie bekommen gleich eine Bestätigung per E-Mail. Ich antworte Ihnen persönlich, in der Regel innerhalb von 24 Stunden an Werktagen.',
     reqSel: 'Zusammenstellung anfragen', reqCheck: 'Kostenlosen Check anfordern', freeNote: 'Der Check ist kostenlos und unverbindlich. Für einen Preis fügen Sie Bausteine hinzu.',
     askOk: 'Danke, Ihre Frage ist angekommen.', askSend: 'Frage senden',
-    picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig', kombi: ' inkl. 10 % Kombi-Rabatt', perYear: '/Jahr (zwei Monate geschenkt)', firstFree: ', erster Monat geschenkt',
+    picked: function (n) { return n === 1 ? '1 Paket gewählt' : n + ' Pakete gewählt'; }, perMonth: '/Monat', oneOff: ' einmalig', kombi: ' inkl. 10 % Kombi-Rabatt', perYear: '/Jahr (12 Monate zum Preis von 10)', firstFree: ', erster Monat geschenkt', anrech: ', Tiefen-Check angerechnet', tierE: 'Betreuung E: Preis nach Absprache', perMonthShort: '/Monat', perYearShort: '/Jahr', zwLabelM: 'pro Monat', zwLabelJ: 'pro Jahr', zwHintM: 'Monatlich kündbar zum Monatsende.', zwHintJ: '12 Monate im Voraus, zwei Monate geschenkt.',
     pilotOn: function (n, left) { return 'Code PILOT aktiv: Sie sparen ' + n + ' gegenüber dem Normalpreis' + (left ? ' (noch ' + left + ' von 5 Pilotplätzen)' : ''); }, pilotOff: 'Pilotphase beendet, es gelten die Normalpreise.',
     aktionOn: function (t, c, n, left) { return 'Aktion ' + t + ' (Code ' + c + ') aktiv: Sie sparen ' + n + (left ? ' (noch ' + left + ' frei)' : ''); },
     codeOk: function (c, p, n) { return 'Code ' + c + ' (' + p + ' %): −' + n; }, codeOkNoSum: function (c, p) { return 'Code ' + c + ' (' + p + ' %) gilt für Ihr erstes Paket.'; },
@@ -272,14 +273,16 @@
     kombi: 'Kombi-Rabatt Website + Automatik (10 %)',
     je: function (n, p) { return n + ' × ' + p; }
   };
-  var B = EN ? { web: ['Website in 7 days', 390], auto: ['Inquiry automation', 290], survey: ['Customer survey', 190], check: ['Website check', 0] }
-             : { web: ['Website in 7 Tagen', 390], auto: ['Anfrage-Automatik', 290], survey: ['Kundenumfrage', 190], check: ['Website-Check', 0] };
-  var C = EN ? { none: null, S: ['Maintenance S', 29], M: ['Maintenance M', 49], L: ['Maintenance L', 79] }
-             : { none: null, S: ['Betreuung S', 29], M: ['Betreuung M', 49], L: ['Betreuung L', 79] };
+  var B = EN ? { web: ['Website in 7 days', 390], auto: ['Inquiry automation', 290], survey: ['Customer survey', 190], tcheck: ['In-depth check', 149], check: ['Website check', 0] }
+             : { web: ['Website in 7 Tagen', 390], auto: ['Anfrage-Automatik', 290], survey: ['Kundenumfrage', 190], tcheck: ['Tiefen-Check', 149], check: ['Website-Check', 0] };
+  /* Version 34: Betreuung E = Preis nach Absprache (null); Monatspreise S/M/L aus TIERS, Jahreszahlung = 10 Monatsbeiträge */
+  var TIERS = { S: 29, M: 49, L: 79, E: 0 }, JAHR_MONATE = 10;
+  var C = EN ? { none: null, S: ['Maintenance S', 29], M: ['Maintenance M', 49], L: ['Maintenance L', 79], E: ['Maintenance E', null] }
+             : { none: null, S: ['Betreuung S', 29], M: ['Betreuung M', 49], L: ['Betreuung L', 79], E: ['Betreuung E', null] };
   /* Zusatzdienste: Name, Preis (null = nach Absprache, 0 = kostenlos), höchste Anzahl (0 = ohne Menge), ab-Preis (1) */
-  var X = EN ? {"pages": ["Additional page", 60, 20, 0], "texte": ["Copy for your pages", 40, 20, 0], "lang": ["Second language", 190, 0, 0], "booking": ["Online booking", 90, 0, 0], "move": ["Move your existing website", 149, 0, 0], "gprofil": ["Google Business Profile", 79, 0, 0], "korrektur": ["Extra round of revisions", 49, 0, 0], "grafik": ["Graphics in your brand style", 120, 0, 1], "kanal": ["Additional channel", 90, 5, 0], "ki": ["AI summary and reply draft", 190, 0, 0], "erinnerung": ["Appointment reminder", 90, 0, 0], "bericht": ["Monthly report by email", 90, 0, 0], "anbindung": ["Connection to your software", 149, 0, 1], "runde": ["Additional survey round", 49, 12, 0], "versand": ["Sending by email", 49, 0, 0], "ulang": ["Survey in a second language", 49, 0, 0], "besprechung": ["Discussing the result", 0, 0, 0], "umsetzung": ["Fixing the missing points", null, 0, 0]}
-             : {"pages": ["Weitere Seite", 60, 20, 0], "texte": ["Texte für Ihre Seiten", 40, 20, 0], "lang": ["Zweite Sprache", 190, 0, 0], "booking": ["Online-Terminbuchung", 90, 0, 0], "move": ["Umzug Ihrer bisherigen Website", 149, 0, 0], "gprofil": ["Google-Unternehmensprofil", 79, 0, 0], "korrektur": ["Zusätzliche Korrekturrunde", 49, 0, 0], "grafik": ["Grafiken im Stil Ihrer Marke", 120, 0, 1], "kanal": ["Weiterer Eingang", 90, 5, 0], "ki": ["KI-Kurzfassung und Antwortvorschlag", 190, 0, 0], "erinnerung": ["Terminerinnerung", 90, 0, 0], "bericht": ["Monatsbericht per E-Mail", 90, 0, 0], "anbindung": ["Anbindung an Ihr Programm", 149, 0, 1], "runde": ["Weitere Umfragerunde", 49, 12, 0], "versand": ["Versand per E-Mail", 49, 0, 0], "ulang": ["Umfrage in zweiter Sprache", 49, 0, 0], "besprechung": ["Besprechung des Ergebnisses", 0, 0, 0], "umsetzung": ["Umsetzung der fehlenden Punkte", null, 0, 0]};
-  var BASIS = { web: 'web', website: 'web', auto: 'auto', automatik: 'auto', automation: 'auto', umfrage: 'survey', survey: 'survey', check: 'check' };
+  var X = EN ? {"pages": ["Additional page", 60, 20, 0], "texte": ["Copy for your pages", 40, 20, 0], "lang": ["Second language", 190, 0, 0], "booking": ["Online booking", 90, 0, 0], "move": ["Move your existing website", 149, 0, 0], "gprofil": ["Google Business Profile", 79, 0, 0], "korrektur": ["Extra round of revisions", 49, 0, 0], "grafik": ["Graphics in your brand style", 120, 0, 1], "kanal": ["Additional channel", 90, 5, 0], "ki": ["AI summary and reply draft", 190, 0, 0], "erinnerung": ["Appointment reminder", 90, 0, 0], "anbindung": ["Connection to your software", 149, 0, 1], "runde": ["Additional survey round", 49, 12, 0], "versand": ["Sending by email", 49, 0, 0], "ulang": ["Survey in a second language", 49, 0, 0], "wettbewerb": ["Comparison with 3 competitors", 90, 0, 0], "umsetzung": ["Implementing the measures", null, 0, 0]}
+             : {"pages": ["Weitere Seite", 60, 20, 0], "texte": ["Texte für Ihre Seiten", 40, 20, 0], "lang": ["Zweite Sprache", 190, 0, 0], "booking": ["Online-Terminbuchung", 90, 0, 0], "move": ["Umzug Ihrer bisherigen Website", 149, 0, 0], "gprofil": ["Google-Unternehmensprofil", 79, 0, 0], "korrektur": ["Zusätzliche Korrekturrunde", 49, 0, 0], "grafik": ["Grafiken im Stil Ihrer Marke", 120, 0, 1], "kanal": ["Weiterer Eingang", 90, 5, 0], "ki": ["KI-Kurzfassung und Antwortvorschlag", 190, 0, 0], "erinnerung": ["Terminerinnerung", 90, 0, 0], "anbindung": ["Anbindung an Ihr Programm", 149, 0, 1], "runde": ["Weitere Umfragerunde", 49, 12, 0], "versand": ["Versand per E-Mail", 49, 0, 0], "ulang": ["Umfrage in zweiter Sprache", 49, 0, 0], "wettbewerb": ["Vergleich mit 3 Wettbewerbern", 90, 0, 0], "umsetzung": ["Umsetzung der Maßnahmen", null, 0, 0]};
+  var BASIS = { web: 'web', website: 'web', auto: 'auto', automatik: 'auto', automation: 'auto', umfrage: 'survey', survey: 'survey', check: 'check', tcheck: 'tcheck', tiefencheck: 'tcheck' };
   function xTeil(t) {
     var m = /^([a-z]+)(?:\*(\d{1,3}))?$/.exec(String(t || '').trim());
     if (!m || !X.hasOwnProperty(m[1])) return null;
@@ -289,7 +292,9 @@
   function summary(sel) {
     var once = 0, month = 0, lines = [], offen = 0, ab = false, seen = {};
     (sel.b || []).forEach(function (k) { var b = B.hasOwnProperty(k) && B[k]; if (!b || seen['b:' + k]) return; seen['b:' + k] = 1; once += b[1]; lines.push([b[0], b[1] ? T.eur(b[1]) : T.free]); });
-    var c = C.hasOwnProperty(sel.c) && C[sel.c]; if (c) { month += c[1]; lines.push([c[0], T.eur(c[1]) + T.month]); }
+    var c = C.hasOwnProperty(sel.c) && C[sel.c];
+    if (c && c[1] === null) { lines.push([c[0], T.arr]); offen++; }
+    else if (c) { if (sel.z === 'jahr') { lines.push([c[0], T.eur(c[1] * JAHR_MONATE) + T.perYearShort + (EN ? ' (12 months for the price of 10)' : ' (12 Monate zum Preis von 10)')]); month += c[1]; } else { month += c[1]; lines.push([c[0], T.eur(c[1]) + T.month]); } }
     (sel.x || []).forEach(function (t) {
       var e = xTeil(t); if (!e || seen[e.k]) return; seen[e.k] = 1;
       var x = e.x, name = x[0] + (x[2] ? ' × ' + e.n : ''), preis;
@@ -301,8 +306,9 @@
     if (sel.wish) { lines.push([TB.wish(sel.wish), T.arr]); offen++; }
     /* Version 29: Kombi-Rabatt, wenn Website und Anfrage-Automatik zusammen gewählt sind */
     if (seen['b:web'] && seen['b:auto']) { var rab = Math.round((B.web[1] + B.auto[1]) * 0.1); once -= rab; lines.push([TB.kombi, '−' + T.eur(rab)]); }
+    if (seen['b:web'] && seen['b:tcheck']) { once -= B.tcheck[1]; lines.push([EN ? 'In-depth check credited (website ordered)' : 'Tiefen-Check angerechnet (Website beauftragt)', '−' + T.eur(B.tcheck[1])]); }
     var text = lines.map(function (l) { return '- ' + l[0] + ', ' + l[1]; });
-    text.push(TB.once + ' ' + (ab ? TB.ab : '') + T.eur(once) + (offen ? TB.plus : ''), TB.monthly + ' ' + T.eur(month), TB.start[sel.w] || TB.start.asap);
+    text.push(TB.once + ' ' + (ab ? TB.ab : '') + T.eur(once) + (offen ? TB.plus : ''), (sel.z === 'jahr' && month ? (EN ? 'Yearly ' : 'Jährlich ') + T.eur(month * JAHR_MONATE) : TB.monthly + ' ' + T.eur(month)), TB.start[sel.w] || TB.start.asap);
     return { once: once, month: month, lines: lines, extras: offen, ab: ab, text: text.join('\n') };
   }
   function bump(el, v) { if (el.textContent !== v) { el.textContent = v; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } }
@@ -323,6 +329,7 @@
         c: (builder.querySelector('input[name="care"]:checked') || {}).value || 'none',
         x: x,
         w: (builder.querySelector('input[name="when"]:checked') || {}).value || 'asap',
+        z: (builder.querySelector('input[name="zahlung"]:checked') || {}).value || 'monat',
         wish: $('x-wish').value.trim().slice(0, 200)
       };
     };
@@ -334,6 +341,7 @@
       builder.querySelectorAll('input[name="x"]').forEach(function (i) { i.checked = xs.hasOwnProperty(i.value); });
       mengen.forEach(function (i) { var k = i.getAttribute('data-x'); i.value = xs.hasOwnProperty(k) ? Math.min(xs[k], hoechst(i)) : 0; });
       var w = sel.w && builder.querySelector('input[name="when"][value="' + sel.w + '"]'); if (w) w.checked = true;
+      var z = builder.querySelector('input[name="zahlung"][value="' + (sel.z === 'jahr' ? 'jahr' : 'monat') + '"]'); if (z) z.checked = true;
       if (typeof sel.wish === 'string') $('x-wish').value = sel.wish.slice(0, 200);
     };
     /* Mengen: Knöpfe sperren, Betrag an der Option zeigen */
@@ -357,7 +365,8 @@
       var has = s.lines.length > 0, paid = s.lines.some(function (l) { return l[1] !== T.free; });
       freeOnly = has && !paid;
       empty.hidden = has; sendB.disabled = !has; sendB.textContent = freeOnly ? T.reqCheck : T.reqSel;
-      bump(onceEl, (s.ab ? TB.ab : '') + T.eur(s.once)); bump(monthEl, T.eur(s.month));
+      bump(onceEl, (s.ab ? TB.ab : '') + T.eur(s.once)); bump(monthEl, sel.z === 'jahr' && s.month ? T.eur(s.month * JAHR_MONATE) + T.perYearShort : (s.month ? T.eur(s.month) : (sel.c === 'E' ? T.arr : T.eur(0))));
+      var mlab = $('sum-month-label'); if (mlab) mlab.textContent = sel.z === 'jahr' && s.month ? (EN ? 'Yearly' : 'Jährlich') : TB.monthly;
       $('sum-note').textContent = freeOnly ? T.freeNote : TB.note + (s.extras ? TB.noteX : '') + (s.ab ? TB.noteAb : '');
       try { sessionStorage.setItem(KEY, JSON.stringify(sel)); } catch (e) {}
     };
@@ -370,6 +379,7 @@
       if (b.disabled) i.focus();
     });
     builder.addEventListener('change', calc);
+    document.addEventListener('ld-zahlweise', function () { calc(); });
     builder.addEventListener('input', function (e) { if (e.target === $('x-wish') || (e.target.hasAttribute && e.target.hasAttribute('data-x'))) calc(); });
     mengen.forEach(function (i) { i.addEventListener('blur', function () { var n = zahl(i); if (String(n) !== i.value) { i.value = n; calc(); } }); });
     /* Vorauswahl: ?basis=web|auto|umfrage|check|S|M|L (auch mehrere), ?x=pages*2,lang; sonst die Auswahl aus dieser Sitzung */
@@ -377,11 +387,11 @@
     var basis = (q.get('basis') || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
     if (basis.length || q.get('x') || q.get('b') || q.get('c')) {
       ausUrl = true;
-      start = { b: (q.get('b') || '').split(',').filter(function (k) { return B.hasOwnProperty(k); }), c: q.get('c') || 'none', x: (q.get('x') || '').split(','), w: q.get('w') || null, wish: null };
+      start = { b: (q.get('b') || '').split(',').filter(function (k) { return B.hasOwnProperty(k); }), c: q.get('c') || 'none', x: (q.get('x') || '').split(','), w: q.get('w') || null, z: q.get('zahlung') === 'jahr' ? 'jahr' : null, wish: null };
       basis.forEach(function (t) {
         var l = t.toLowerCase(), k = BASIS.hasOwnProperty(l) ? BASIS[l] : null;
         if (k) { if (start.b.indexOf(k) < 0) start.b.push(k); }
-        else if (/^[sml]$/.test(l)) start.c = l.toUpperCase();
+        else if (/^[smle]$/.test(l)) start.c = l.toUpperCase();
         else if (l === 'betreuung' || l === 'maintenance') start.c = 'S';
       });
       if (!q.get('b') && start.b.indexOf('check') < 0) start.b.push('check');
@@ -401,15 +411,15 @@
     sendB.addEventListener('click', function () {
       var s = current();
       if (freeOnly) { location.href = kontaktUrl + '?pakete=check'; return; }
-      var qs = new URLSearchParams({ anliegen: 'individuell', b: s.b.join(','), c: s.c, x: s.x.join(','), w: s.w });
+      var qs = new URLSearchParams({ anliegen: 'individuell', b: s.b.join(','), c: s.c, x: s.x.join(','), w: s.w, zahlung: s.z === 'jahr' ? 'jahr' : 'monat' });
       try { if (s.wish) sessionStorage.setItem('ld-wish', s.wish); else sessionStorage.removeItem('ld-wish'); } catch (e) {}
       location.href = kontaktUrl + '?' + qs.toString();
     });
   }
 
   /* ---------- Version 30: Pilotstand und Codes live vom Server (/api/code.php) ---------- */
-  var NORMAL = { website: 790, automatik: 590, umfrage: 290 }, PILOT = { website: 390, automatik: 290, umfrage: 190 };
-  var PREIS = { website: 390, automatik: 290, umfrage: 190 }; /* aktuelle Preise, kommen vom Server (/api/code.php) */
+  var NORMAL = { website: 790, automatik: 590, umfrage: 290, tiefencheck: 299 }, PILOT = { website: 390, automatik: 290, umfrage: 190, tiefencheck: 149 };
+  var PREIS = { website: 390, automatik: 290, umfrage: 190, tiefencheck: 149 }; /* aktuelle Preise, kommen vom Server (/api/code.php) */
   var pilotInfo = { pilot: true, frei: 5 }, aktionInfo = null;
   var codeInfo = null; /* { code, gueltig, art, prozent, text, grund } */
   var codeApi = function (code, pakete, cb) {
@@ -426,6 +436,7 @@
     document.body.classList.toggle('pilot-aus', !pilotInfo.pilot);
     document.body.classList.toggle('aktion-an', !!(aktionInfo && !pilotInfo.pilot));
     Object.keys(d.preise).forEach(function (k) { if (d.preise[k] && d.preise[k].length) { PREIS[k] = d.preise[k][0]; NORMAL[k] = d.preise[k][1]; } });
+    if (d.tiers) { Object.keys(d.tiers).forEach(function (k) { TIERS[k] = d.tiers[k]; }); if (d.jahr_monate) JAHR_MONATE = d.jahr_monate; if (typeof setZahlweise === 'function') setZahlweise(zahlweise()); }
     document.querySelectorAll('[data-pick][data-once]').forEach(function (b) {
       var k = b.getAttribute('data-pick'); if (!NORMAL[k]) return;
       if (parseInt(b.getAttribute('data-once') || '0', 10) === PREIS[k]) return;
@@ -435,16 +446,35 @@
     });
     /* Paketkarten: Kombi-Preise aus den aktuellen Preisen */
     var kw = PREIS.website + PREIS.automatik, kn = NORMAL.website + NORMAL.automatik;
-    var pv = { 'kombi': T.eur(Math.round(kw * 0.9)), 'kombi-ohne': T.eur(kw), 'kombi-normal': T.eur(Math.round(kn * 0.9)), 'kombi-normal-ohne': T.eur(kn) };
+    var pv = { 'kombi': T.eur(Math.round(kw * 0.9)), 'kombi-ohne': T.eur(kw), 'kombi-normal': T.eur(Math.round(kn * 0.9)), 'kombi-normal-ohne': T.eur(kn), 'tiefencheck': T.eur(PREIS.tiefencheck), 'tiefencheck-normal': T.eur(NORMAL.tiefencheck), 'website': T.eur(PREIS.website), 'website-normal': T.eur(NORMAL.website), 'automatik': T.eur(PREIS.automatik), 'automatik-normal': T.eur(NORMAL.automatik), 'umfrage': T.eur(PREIS.umfrage), 'umfrage-normal': T.eur(NORMAL.umfrage) };
     document.querySelectorAll('[data-preis]').forEach(function (el) { var v = pv[el.getAttribute('data-preis')]; if (v) el.textContent = v; });
     var ab = $('aktion-banner');
     if (ab) { if (aktionInfo && !pilotInfo.pilot) { ab.hidden = false; ab.textContent = T.aktionOn(aktionInfo.titel, aktionInfo.code, '', aktionInfo.frei).replace(': Sie sparen ', '').replace(': you save ', '') + (aktionInfo.text ? ' – ' + aktionInfo.text : ''); } else ab.hidden = true; }
   };
 
+  /* ---------- Version 34: Zahlweise der Betreuung (monatlich / jährlich), gilt für Tabelle, Leiste, Karten, Baukasten und Kontakt ---------- */
+  var zahlweise = function () { var z = ''; try { z = sessionStorage.getItem('ld-zahlweise') || ''; } catch (e) {} var q = new URLSearchParams(location.search).get('zahlung'); if (q === 'jahr' || q === 'monat') z = q; return z === 'jahr'; };
+  var setZahlweise = function (jahrAn) {
+    try { sessionStorage.setItem('ld-zahlweise', jahrAn ? 'jahr' : 'monat'); } catch (e) {}
+    document.querySelectorAll('[data-zahlweise]').forEach(function (b) { b.setAttribute('aria-pressed', String((b.getAttribute('data-zahlweise') === 'jahr') === jahrAn)); });
+    document.querySelectorAll('[data-tier-preis]').forEach(function (el) { var t = el.getAttribute('data-tier-preis'); if (!TIERS[t]) return; el.textContent = jahrAn ? T.eur(TIERS[t] * JAHR_MONATE) : T.eur(TIERS[t]); });
+    document.querySelectorAll('[data-tier-preis-monat]').forEach(function (el) { var t = el.getAttribute('data-tier-preis-monat'); if (TIERS[t]) el.textContent = T.eur(TIERS[t]); });
+    document.querySelectorAll('[data-tier-preis-jahr]').forEach(function (el) { var t = el.getAttribute('data-tier-preis-jahr'); if (TIERS[t]) el.textContent = T.eur(TIERS[t] * JAHR_MONATE); });
+    document.querySelectorAll('[data-zw-label]').forEach(function (el) { el.textContent = jahrAn ? T.zwLabelJ : T.zwLabelM; });
+    document.querySelectorAll('[data-zw-hint]').forEach(function (el) { el.textContent = jahrAn ? T.zwHintJ : T.zwHintM; });
+    document.querySelectorAll('[data-zw-row]').forEach(function (el) { el.classList.toggle('is-on', (el.getAttribute('data-zw-row') === 'jahr') === jahrAn); });
+    document.querySelectorAll('input[name="zahlung"]').forEach(function (i) { i.checked = (i.value === 'jahr') === jahrAn; });
+    document.dispatchEvent(new CustomEvent('ld-zahlweise', { detail: { jahr: jahrAn } }));
+  };
+  document.querySelectorAll('[data-zahlweise]').forEach(function (b) { b.addEventListener('click', function () { setZahlweise(b.getAttribute('data-zahlweise') === 'jahr'); track('zw', b.getAttribute('data-zahlweise')); }); });
+  document.addEventListener('change', function (e) { if (e.target && e.target.name === 'zahlung' && e.target.type === 'radio') setZahlweise(e.target.value === 'jahr'); });
+  if (document.querySelector('[data-zahlweise], [data-tier-preis], input[name="zahlung"]')) setZahlweise(zahlweise());
+
   /* ---------- Pakete auswählen (Tabelle) mit Leiste unten ---------- */
   var bar = $('pickbar');
   if (bar) {
-    var picks = {}, tier = null, tierPrice = { S: 29, M: 49, L: 79 }, jahr = false;
+    var picks = {}, tier = null, jahr = zahlweise();
+    document.addEventListener('ld-zahlweise', function (e) { jahr = !!e.detail.jahr; if (typeof render === 'function') render(); });
     /* Version 30: Zeile für Pilotpreis und Code in der Leiste */
     var pbCode = document.createElement('div'); pbCode.className = 'pb-code'; pbCode.id = 'pb-code'; pbCode.hidden = true;
     var pbTxt = bar.querySelector('.pb-txt'); if (pbTxt) pbTxt.appendChild(pbCode);
@@ -487,12 +517,14 @@
       /* Version 29: Kombi-Rabatt – Website und Anfrage-Automatik zusammen 10 % günstiger */
       var kombi = picks.hasOwnProperty('website') && picks.hasOwnProperty('automatik');
       var rabatt = kombi ? Math.round((picks.website + picks.automatik) * 0.1) : 0;
+      var anrech = picks.hasOwnProperty('website') && picks.hasOwnProperty('tiefencheck') ? picks.tiefencheck : 0;   /* Version 34: Tiefen-Check wird mit der Website angerechnet */
       var codeAb = (codeInfo && codeInfo.gueltig && codeInfo.art !== 'pilot' && codeInfo.ersparnis) ? codeInfo.ersparnis : 0;
-      var parts = []; if (once || !tier) parts.push(T.eur(Math.max(0, once - rabatt - codeAb)) + T.oneOff + (kombi ? T.kombi : ''));
-      if (tier) parts.push(jahr ? T.eur(tierPrice[tier] * 10) + T.perYear : T.eur(tierPrice[tier]) + T.perMonth + (kombi ? T.firstFree : ''));
+      var parts = []; if (once || !tier) parts.push(T.eur(Math.max(0, once - rabatt - anrech - codeAb)) + T.oneOff + (kombi ? T.kombi : '') + (anrech ? T.anrech : ''));
+      var startpaket = picks.hasOwnProperty('website') && !jahr;
+      if (tier) parts.push(tier === 'E' || !TIERS[tier] ? T.tierE : (jahr ? T.eur(TIERS[tier] * JAHR_MONATE) + T.perYear : T.eur(TIERS[tier]) + T.perMonth + (startpaket ? T.firstFree : '')));
       $('pb-sum').textContent = parts.join(' · ');
       var q = keys.slice(); if (tier) q.push('betreuung');
-      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : '') + (kombi ? '&kombi=1' : '') + (tier && jahr ? '&zahlung=jahr' : '') + (codeVal ? '&code=' + encodeURIComponent(codeVal) : ''));
+      $('pb-go').setAttribute('href', kontaktUrl + '?pakete=' + q.join(',') + (tier ? '&stufe=' + tier : '') + (kombi ? '&kombi=1' : '') + (tier ? '&zahlung=' + (jahr ? 'jahr' : 'monat') : '') + (codeVal ? '&code=' + encodeURIComponent(codeVal) : ''));
       if (typeof renderCode === 'function') renderCode();
       document.querySelectorAll('[data-bundle]').forEach(function (b) {
         var want = (b.getAttribute('data-bundle') || '').split(',').filter(Boolean), wt = b.getAttribute('data-bundle-tier') || '', wj = b.getAttribute('data-bundle-jahr') === '1';
@@ -518,14 +550,13 @@
       b.addEventListener('click', function () {
         var want = (b.getAttribute('data-bundle') || '').split(',').filter(Boolean), wt = b.getAttribute('data-bundle-tier') || '', wj = b.getAttribute('data-bundle-jahr') === '1';
         var already = b.getAttribute('aria-pressed') === 'true';
-        if (already) { want.forEach(function (k) { delete picks[k]; }); if (wt) { tier = null; jahr = false; } }
-        else { want.forEach(function (k) { picks[k] = priceOf(k); }); if (wt) { tier = wt; jahr = wj; } }
+        if (already) { want.forEach(function (k) { delete picks[k]; }); if (wt) tier = null; }
+        else { want.forEach(function (k) { picks[k] = priceOf(k); }); if (wt) tier = wt; if (wj) setZahlweise(true); }
         render();
         if (!already) { var pb = $('pickbar'); if (pb) { pb.classList.add('pulse'); setTimeout(function () { pb.classList.remove('pulse'); }, 900); } }
       });
     });
-    document.querySelectorAll('[data-pick="betreuung"]').forEach(function (b) { b.addEventListener('click', function () { if (!tier) jahr = false; }); });
-    $('pb-clear').addEventListener('click', function () { picks = {}; tier = null; jahr = false; render(); });
+    $('pb-clear').addEventListener('click', function () { picks = {}; tier = null; render(); });
     render();
     /* Pilotstand laden; bei Codes auch die Ersparnis neu rechnen, wenn sich die Auswahl ändert */
     checkCode();
@@ -561,7 +592,11 @@
     if (q.get('anliegen')) want.push(q.get('anliegen'));
     want.forEach(function (v) { v = (v || '').replace(/[^a-z]/g, ''); var el = v && form.querySelector('input[name="pakete[]"][value="' + v + '"]'); if (el) el.checked = true; });
     if (q.get('kombi') === '1') { var kb = document.createElement('input'); kb.type = 'hidden'; kb.name = 'kombi'; kb.value = '1'; form.appendChild(kb); }
-    if (q.get('zahlung') === 'jahr') { var zj = document.createElement('input'); zj.type = 'hidden'; zj.name = 'zahlung'; zj.value = 'jahr'; form.appendChild(zj); var zl = $('tier-note'); if (zl) zl.hidden = false; }
+    /* Version 34: Zahlweise als Auswahl im Formular (vorbelegt aus Link oder letzter Wahl), Stufe E ohne Preis */
+    var zahlSync = function () { var j = !!form.querySelector('input[name="zahlung"][value="jahr"]:checked'), e = !!form.querySelector('input[name="betreuung_stufe"][value="E"]:checked'); var zl = $('tier-note'); if (zl) { zl.hidden = !(j || e); zl.textContent = e ? (EN ? 'Maintenance E: we agree scope and price in a call.' : 'Betreuung E: Umfang und Preis legen wir im Gespräch fest.') : (EN ? 'Yearly: 12 months for the price of 10 (' : 'Jährlich: 12 Monate zum Preis von 10 (') + ['S', 'M', 'L'].map(function (t) { return t + ' ' + T.eur(TIERS[t] * JAHR_MONATE); }).join(', ') + (EN ? ' per year).' : ' im Jahr).'); } var zf = $('zahlung-field'); if (zf) zf.hidden = e; };
+    form.addEventListener('change', function (e) { if (e.target.name === 'zahlung' || e.target.name === 'betreuung_stufe') zahlSync(); });
+    document.addEventListener('ld-zahlweise', zahlSync);
+    zahlSync();
     var cf = $('f-code');
     if (cf) {
       var c0 = storedCode(); if (c0) cf.value = c0;
@@ -581,15 +616,15 @@
       cf.addEventListener('change', pruefe); if (cf.value) pruefe();
       chips.forEach(function (x) { x.addEventListener('change', function () { if (cf.value) pruefe(); }); });
     }
-    if (/^[SML]$/.test(q.get('stufe') || '')) { var tr = form.querySelector('input[name="betreuung_stufe"][value="' + q.get('stufe') + '"]'); if (tr) tr.checked = true; }
+    if (/^[SMLE]$/.test(q.get('stufe') || '')) { var tr = form.querySelector('input[name="betreuung_stufe"][value="' + q.get('stufe') + '"]'); if (tr) { tr.checked = true; zahlSync(); } }
     if (q.get('url')) $('f-url').value = q.get('url').slice(0, 200);
     if (q.get('anliegen') === 'individuell' && (q.get('b') || q.get('c'))) {
       var wish = ''; try { wish = sessionStorage.getItem('ld-wish') || ''; } catch (e) {}
-      pkg.value = summary({ b: (q.get('b') || '').split(',').filter(Boolean), c: q.get('c') || 'none', x: (q.get('x') || '').split(',').filter(Boolean), w: q.get('w') || 'asap', wish: wish }).text;
+      pkg.value = summary({ b: (q.get('b') || '').split(',').filter(Boolean), c: q.get('c') || 'none', x: (q.get('x') || '').split(',').filter(Boolean), w: q.get('w') || 'asap', z: q.get('zahlung') === 'jahr' ? 'jahr' : 'monat', wish: wish }).text;
       /* Betreuung aus dem Baukasten übernehmen (Stufe S, M oder L) */
-      if (/^[SML]$/.test(q.get('c') || '')) {
+      if (/^[SMLE]$/.test(q.get('c') || '')) {
         var cb = form.querySelector('input[name="pakete[]"][value="betreuung"]'), st = form.querySelector('input[name="betreuung_stufe"][value="' + q.get('c') + '"]');
-        if (cb) cb.checked = true; if (st) st.checked = true;
+        if (cb) cb.checked = true; if (st) { st.checked = true; zahlSync(); }
       }
     }
     /* Zusammenstellung ganz zeigen, auch die Summe am Ende */

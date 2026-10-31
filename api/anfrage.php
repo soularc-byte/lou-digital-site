@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 33, 31.10.2026)
+/* Lou Digital – Eingang für Anfrage, Terminwunsch, Frage und Feedback (Version 34, 31.10.2026)
+   Version 34: Tiefen-Check als Paket, Betreuung E (nach Absprache), Zahlweise aus dem Formular, Startpaket = Website + Betreuung.
    Version 33: nur von der eigenen Website, Bestätigung höchstens 2× je Empfänger und Tag (60/Stunde gesamt), Name in der Anrede nur als reiner Name.
    Version 32: Link zum Auftrag im Portal korrigiert (Büro → Auftrag), Sicherheitsrunde (siehe lib.php, portal.php).
    Version 30: Codes und Pilotpreis aus der Portal-Datenbank, Auftrag wird im Portal angelegt.
@@ -23,6 +24,7 @@ $kind = in_array($kind, ['frage', 'feedback'], true) ? $kind : 'anfrage';
 
 $L = [
   'check'       => [$de ? 'Website-Check (kostenlos)' : 'Website check (free)'],
+  'tiefencheck' => [$de ? 'Tiefen-Check' : 'In-depth check'],
   'website'     => [$de ? 'Website in 7 Tagen' : 'Website in 7 days'],
   'automatik'   => [$de ? 'Anfrage-Automatik' : 'Inquiry automation'],
   'umfrage'     => [$de ? 'Kundenumfrage' : 'Customer survey'],
@@ -94,7 +96,7 @@ if ($errors) ld_json(422, ['ok' => false, 'error' => 'invalid', 'fields' => $err
 
 /* Texte der Auswahl */
 $labels = [];
-foreach ($sel as $k) $labels[] = $k === 'betreuung' ? $L[$k][0] . ' ' . $tier . ' (' . ($de ? $TIERS[$tier] . ' €/Monat' : '€' . $TIERS[$tier] . '/month') . ')' : $L[$k][0];
+foreach ($sel as $k) $labels[] = $k === 'betreuung' ? $L[$k][0] . ' ' . $tier . ' (' . ($TIERS[$tier] ? ($de ? $TIERS[$tier] . ' €/' . ($jahr ? 'Monat, jährlich' : 'Monat') : '€' . $TIERS[$tier] . '/' . ($jahr ? 'month, yearly' : 'month')) : ($de ? 'nach Absprache' : 'by arrangement')) . ')' : $L[$k][0];
 $topic = $labels ? implode(', ', $labels) : ($de ? 'Allgemeine Anfrage' : 'General inquiry');
 $fmtDate = function (DateTime $d) use ($de) {
   $wd = $de ? ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'] : ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -113,45 +115,52 @@ foreach ($sel as $k) {
 $kombiOk = $kombi && in_array('website', $sel, true) && in_array('automatik', $sel, true);
 if (!$kombiOk && in_array('website', $sel, true) && in_array('automatik', $sel, true)) $kombiOk = true; // Kombi gilt automatisch
 $rabatt = $kombiOk ? (int)round(($PREIS['website'][0] + $PREIS['automatik'][0]) * 0.1) : 0;
-$codeRabatt = ($code && $code['prozent'] > 0 && $einmalig) ? (int)round(($einmalig - $rabatt) * $code['prozent'] / 100) : 0;
+/* Version 34: Tiefen-Check wird bei gleichzeitiger Beauftragung der Website voll angerechnet */
+$anrechnung = in_array('tiefencheck', $sel, true) && in_array('website', $sel, true) ? $PREIS['tiefencheck'][0] : 0;
+$codeRabatt = ($code && $code['prozent'] > 0 && $einmalig) ? (int)round(($einmalig - $rabatt - $anrechnung) * $code['prozent'] / 100) : 0;
 $codeZeile = $code ? ($de ? 'Code ' . $code['code'] : 'Code ' . $code['code']) . ($code['art'] === 'empfehlung' ? ($de ? ' (Empfehlung, 10 %' . ($code['gueltig'] ? '' : ', wird geprüft') . ')' : ' (referral, 10%' . ($code['gueltig'] ? '' : ', to be verified') . ')') : ($code['art'] === 'aktion' ? ' (' . $code['prozent'] . ' %' . ($code['text'] !== '' ? ', ' . $code['text'] : '') . ')' : ($de ? ' (unbekannt, wird geprüft)' : ' (unknown, to be checked)'))) : '';
 if ($posten && $kind === 'anfrage') {
   $eur = function (int $n) use ($de) { return $de ? number_format($n, 0, ',', '.') . ' €' : '€' . number_format($n, 0, '.', ','); };
+  $tierE = $tier === 'E' && in_array('betreuung', $sel, true);   // Version 34: Preis nach Absprache
+  $preisTxt = function (int $pp, string $art) use ($eur, $de, $tierE) { return $art === 'monat' && $tierE ? ($de ? 'nach Absprache' : 'by arrangement') : $eur($pp); };
   $lines = [];
   foreach ($posten as [$n, $pp, $np, $art]) {
-    $lines[] = str_pad(($art === 'monat' ? $n . ($de ? ' (monatlich)' : ' (per month)') : $n), 46) . str_pad($eur($pp), 12, ' ', STR_PAD_LEFT);
+    $lines[] = str_pad(($art === 'monat' ? $n . ($de ? ' (monatlich)' : ' (per month)') : $n), 46) . str_pad($preisTxt($pp, $art), 12, ' ', STR_PAD_LEFT);
   }
   $pilotErsparnis = 0; if ($aktion) foreach ($posten as [$n, $pp, $np, $art]) if ($art === 'einmalig') $pilotErsparnis += $np - $pp;
   if ($pilotErsparnis) $lines[] = str_pad(mb_substr(($pilot ? ($de ? 'Pilotpreis' : 'Pilot price') : $aktionTitel) . ' (Code ' . $aktion['code'] . '): ' . ($de ? 'schon abgezogen' : 'already deducted'), 0, 46), 46) . str_pad(($de ? 'spart ' : 'saves ') . $eur($pilotErsparnis), 12, ' ', STR_PAD_LEFT);
   if ($rabatt) $lines[] = str_pad($de ? 'Kombi-Rabatt Website + Automatik (10 %)' : 'Bundle discount website + automation (10%)', 46) . str_pad('-' . $eur($rabatt), 12, ' ', STR_PAD_LEFT);
+  if ($anrechnung) $lines[] = str_pad($de ? 'Tiefen-Check angerechnet (Website beauftragt)' : 'In-depth check credited (website ordered)', 46) . str_pad('-' . $eur($anrechnung), 12, ' ', STR_PAD_LEFT);
   if ($codeRabatt) $lines[] = str_pad(mb_substr($codeZeile, 0, 43), 46) . str_pad('-' . $eur($codeRabatt), 12, ' ', STR_PAD_LEFT);
-  $sumOnce = $einmalig - $rabatt - $codeRabatt;
-  $monatlichText = $jahr && $monatlich ? ($de ? 'Jahreszahlung Betreuung (zwei Monate geschenkt)' : 'Annual payment maintenance (two months free)') : ($de ? 'Monatlich, monatlich kündbar' : 'Monthly, cancel any month');
-  $monatlichWert = $jahr && $monatlich ? $eur($monatlich * 10) . ($de ? '/Jahr' : '/year') : $eur($monatlich);
+  $sumOnce = $einmalig - $rabatt - $anrechnung - $codeRabatt;
+  $monatlichText = $tierE ? ($de ? 'Betreuung E: Umfang und Preis nach Gespräch' : 'Maintenance E: scope and price after a call') : ($jahr && $monatlich ? ($de ? 'Jahreszahlung Betreuung (12 Monate zum Preis von 10)' : 'Annual payment maintenance (12 months for the price of 10)') : ($de ? 'Monatlich, monatlich kündbar' : 'Monthly, cancel any month'));
+  $monatlichWert = $tierE ? ($de ? 'nach Absprache' : 'by arrangement') : ($jahr && $monatlich ? $eur($monatlich * LD_JAHR_MONATE) . ($de ? '/Jahr' : '/year') : $eur($monatlich));
   $angebotText = implode("\n", $lines) . "\n" . str_repeat('-', 58) . "\n";
   if ($einmalig) $angebotText .= str_pad($de ? 'Einmalig' : 'One-off', 46) . str_pad($eur($sumOnce), 12, ' ', STR_PAD_LEFT) . "\n";
-  $startpaket = $kombiOk && $monatlich && !$jahr;
+  $startpaket = in_array('website', $sel, true) && $monatlich && !$jahr;   // Version 34: Website + Betreuung = erster Monat geschenkt
   if ($startpaket) $angebotText .= str_pad($de ? 'Startpaket: erster Betreuungsmonat geschenkt' : 'Starter: first month of maintenance free', 46) . str_pad('-' . $eur($monatlich), 12, ' ', STR_PAD_LEFT) . "\n";
-  if ($monatlich) $angebotText .= str_pad($monatlichText, 46) . str_pad($monatlichWert, 12, ' ', STR_PAD_LEFT) . "\n";
+  if ($monatlich || $tierE) $angebotText .= str_pad($monatlichText, 46) . str_pad($monatlichWert, 12, ' ', STR_PAD_LEFT) . "\n";
   $angebotText .= ($pilot ? ($de ? 'Pilotpreise für die ersten fünf Kunden mit Referenz (noch ' . $pilotFrei . ' frei). ' : 'Pilot prices for the first five clients who allow a reference (' . $pilotFrei . ' left). ') : ($aktion ? ($de ? 'Aktionspreise „' . $aktionTitel . '“' . ($aktion['bis'] !== '' ? ' bis ' . date('d.m.Y', strtotime($aktion['bis'])) : '') . '. ' : 'Promotion “' . $aktionTitel . '”' . ($aktion['bis'] !== '' ? ' until ' . date('j M Y', strtotime($aktion['bis'])) : '') . '. ') : ''))
                 . ($de ? 'Alle Preise ohne Umsatzsteuer (§ 19 UStG). Unverbindlich, gültig 14 Tage; das verbindliche Angebot bekommen Sie nach unserem Gespräch als PDF.'
                        : 'No VAT charged (§ 19 UStG). Non-binding, valid for 14 days; you receive the binding quote as a PDF after our call.');
   $rowsHtml = '';
   foreach ($posten as [$n, $pp, $np, $art]) {
     $rowsHtml .= '<tr><td style="padding:8px 0;border-bottom:1px solid #dde2df">' . ld_h($n) . ($art === 'monat' ? '<br><span style="color:#4b585a;font-size:13px">' . ($de ? 'monatlich, jederzeit kündbar' : 'per month, cancel any time') . '</span>' : ($pp < $np ? '<br><span style="color:#4b585a;font-size:13px">' . ($de ? 'Pilotpreis, Normalpreis ' : 'pilot price, regular ') . $eur($np) . '</span>' : '')) . '</td>'
-              . '<td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;white-space:nowrap">' . $eur($pp) . ($art === 'monat' ? ($de ? '/Monat' : '/month') : '') . '</td></tr>';
+              . '<td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;white-space:nowrap">' . $preisTxt($pp, $art) . ($art === 'monat' && !$tierE ? ($de ? '/Monat' : '/month') : '') . '</td></tr>';
   }
   if ($pilotErsparnis) $rowsHtml .= '<tr><td style="padding:8px 0;border-bottom:1px solid #dde2df">' . ($pilot ? ($de ? 'Ihre Ersparnis durch den Pilotpreis (Code PILOT)' : 'Your saving from the pilot price (code PILOT)') : ($de ? 'Ihre Ersparnis durch die Aktion ' : 'Your saving from the promotion ') . ld_h($aktionTitel) . ' (Code ' . ld_h($aktion['code']) . ')') . '</td><td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;color:#0b6e69;white-space:nowrap">' . ($de ? 'bereits abgezogen, ' : 'already deducted, ') . $eur($pilotErsparnis) . '</td></tr>';
   if ($rabatt) $rowsHtml .= '<tr><td style="padding:8px 0;border-bottom:1px solid #dde2df">' . ($de ? 'Kombi-Rabatt Website + Anfrage-Automatik (10 %)' : 'Bundle discount website + inquiry automation (10%)') . '</td><td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;color:#0b6e69;white-space:nowrap">&minus;' . $eur($rabatt) . '</td></tr>';
+  if ($anrechnung) $rowsHtml .= '<tr><td style="padding:8px 0;border-bottom:1px solid #dde2df">' . ($de ? 'Tiefen-Check angerechnet, weil Sie die Website beauftragen' : 'In-depth check credited because you order the website') . '</td><td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;color:#0b6e69;white-space:nowrap">&minus;' . $eur($anrechnung) . '</td></tr>';
   if ($codeRabatt) $rowsHtml .= '<tr><td style="padding:8px 0;border-bottom:1px solid #dde2df">' . ld_h($codeZeile) . '</td><td style="padding:8px 0;border-bottom:1px solid #dde2df;text-align:right;color:#0b6e69;white-space:nowrap">&minus;' . $eur($codeRabatt) . '</td></tr>';
   elseif ($code) $rowsHtml .= '<tr><td colspan="2" style="padding:8px 0;border-bottom:1px solid #dde2df;color:#4b585a;font-size:13px">' . ld_h($codeZeile) . '</td></tr>';
   if ($einmalig) $rowsHtml .= '<tr><td style="padding:10px 0 4px;font-weight:bold">' . ($de ? 'Einmalig' : 'One-off') . '</td><td style="padding:10px 0 4px;text-align:right;font-weight:bold;white-space:nowrap">' . $eur($sumOnce) . '</td></tr>';
   if ($startpaket) $rowsHtml .= '<tr><td style="padding:4px 0;color:#0b6e69">' . ($de ? 'Startpaket: erster Betreuungsmonat geschenkt' : 'Starter: first month of maintenance free') . '</td><td style="padding:4px 0;text-align:right;color:#0b6e69;white-space:nowrap">&minus;' . $eur($monatlich) . '</td></tr>';
-  if ($monatlich) $rowsHtml .= '<tr><td style="padding:4px 0;font-weight:bold">' . ld_h($jahr ? ($de ? 'Jährlich (zwei Monate geschenkt)' : 'Yearly (two months free)') : ($de ? 'Monatlich' : 'Monthly')) . '</td><td style="padding:4px 0;text-align:right;font-weight:bold;white-space:nowrap">' . ($jahr ? $eur($monatlich * 10) . ($de ? '/Jahr' : '/year') : $eur($monatlich) . ($de ? '/Monat' : '/month')) . '</td></tr>';
+  if ($monatlich) $rowsHtml .= '<tr><td style="padding:4px 0;font-weight:bold">' . ld_h($jahr ? ($de ? 'Jährlich (12 Monate zum Preis von 10)' : 'Yearly (12 months for the price of 10)') : ($de ? 'Monatlich' : 'Monthly')) . '</td><td style="padding:4px 0;text-align:right;font-weight:bold;white-space:nowrap">' . ($jahr ? $eur($monatlich * LD_JAHR_MONATE) . ($de ? '/Jahr' : '/year') : $eur($monatlich) . ($de ? '/Monat' : '/month')) . '</td></tr>';
+  elseif ($tierE) $rowsHtml .= '<tr><td style="padding:4px 0;font-weight:bold">' . ($de ? 'Betreuung E' : 'Maintenance E') . '</td><td style="padding:4px 0;text-align:right;font-weight:bold;white-space:nowrap">' . ($de ? 'nach Gespräch' : 'after a call') . '</td></tr>';
   $angebotHtml = '<h2 style="font-size:17px;margin:22px 0 6px">' . ($de ? 'Ihre unverbindliche Preisübersicht' : 'Your non-binding price overview') . '</h2>'
                . '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:15px">' . $rowsHtml . '</table>'
                . '<p style="margin:10px 0 0;color:#4b585a;font-size:13px">' . ($pilot ? ($de ? 'Pilotpreise für die ersten fünf Kunden, die eine Referenz erlauben (noch ' . $pilotFrei . ' frei). ' : 'Pilot prices for the first five clients who allow a reference (' . $pilotFrei . ' left). ') : ($aktion ? ld_h($de ? 'Aktionspreise „' . $aktionTitel . '“' . ($aktion['bis'] !== '' ? ' bis ' . date('d.m.Y', strtotime($aktion['bis'])) : '') . '. ' : 'Promotion “' . $aktionTitel . '”' . ($aktion['bis'] !== '' ? ' until ' . date('j M Y', strtotime($aktion['bis'])) : '') . '. ') : '')) . ($de ? 'Alle Preise ohne Umsatzsteuer (§ 19 UStG). Unverbindlich, 14 Tage gültig. Das verbindliche Angebot erhalten Sie nach unserem Gespräch als PDF.' : 'No VAT charged (§ 19 UStG). Non-binding, valid for 14 days. You receive the binding quote as a PDF after our call.') . '</p>';
-  $angebot = ['text' => $angebotText, 'html' => $angebotHtml, 'einmalig' => $sumOnce, 'monatlich' => $monatlich, 'rabatt' => $rabatt + $codeRabatt, 'posten' => count($posten), 'jahr' => $jahr && $monatlich];
+  $angebot = ['text' => $angebotText, 'html' => $angebotHtml, 'einmalig' => $sumOnce, 'monatlich' => $monatlich, 'rabatt' => $rabatt + $anrechnung + $codeRabatt, 'posten' => count($posten), 'jahr' => $jahr && $monatlich];
 }
 
 /* Version 30: Auftrag in der Portal-Datenbank anlegen (Status „Angebot“); Adrian führt ihn im Portal weiter */
@@ -186,7 +195,7 @@ if ($pkg !== '') $rows['Zusammenstellung'] = $pkg;
 if ($code) $rows['Code'] = $codeZeile . ($code['gueltig'] ? '' : ' – BITTE PRÜFEN');
 if ($auftragId) $rows['Portal'] = 'Auftrag #' . $auftragId . ' angelegt (Status Angebot) – ' . LD_SITE . '/portal/admin/auftrag?id=' . $auftragId;
 if ($aktion && $posten) $rows[$pilot ? 'Pilot' : 'Aktion'] = $pilot ? 'Pilotpreis aktiv, noch ' . $pilotFrei . ' von ' . LD_PILOT_MAX . ' frei' : $aktionTitel . ' (' . $aktion['code'] . ') aktiv';
-if ($angebot) $rows['Preisübersicht'] = ($angebot['einmalig'] ? number_format($angebot['einmalig'], 0, ',', '.') . ' € einmalig' : '') . ($angebot['monatlich'] ? ($angebot['einmalig'] ? ' + ' : '') . $angebot['monatlich'] . ' €/Monat' : '') . ($angebot['rabatt'] ? ' (Rabatte ' . $angebot['rabatt'] . ' € abgezogen)' : '') . ' – unverbindlich an den Kunden gesendet';
+if ($angebot) $rows['Preisübersicht'] = ($angebot['einmalig'] ? number_format($angebot['einmalig'], 0, ',', '.') . ' € einmalig' : '') . ($angebot['monatlich'] ? ($angebot['einmalig'] ? ' + ' : '') . $angebot['monatlich'] . ' €/Monat' . ($jahr ? ' (jährlich ' . ($angebot['monatlich'] * LD_JAHR_MONATE) . ' €)' : '') : ($tier === 'E' && in_array('betreuung', $sel, true) ? ' + Betreuung E nach Absprache' : '')) . ($angebot['rabatt'] ? ' (Rabatte ' . $angebot['rabatt'] . ' € abgezogen)' : '') . ' – unverbindlich an den Kunden gesendet';
 if ($msg !== '') $rows[$kind === 'anfrage' ? 'Nachricht' : ($kind === 'frage' ? 'Frage' : 'Vorschlag')] = $msg;
 $rows['Sprache'] = strtoupper($lang);
 if ($page !== '') $rows['Gesendet von'] = $page;

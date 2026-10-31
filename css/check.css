@@ -89,11 +89,14 @@
 @media (max-width: 560px) { .c50-katalog li { grid-template-columns: minmax(0, 1fr); } .c50-katalog li small { grid-column: 1; } }
 
 /* Vergleich Sofort-Check / Ergebnisblatt */
-.c50-vergleich { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: clamp(28px, 4vw, 44px); }
+.c50-vergleich { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: clamp(28px, 4vw, 44px); }   /* Version 34: drei Spalten, Tiefen-Check dazu */
+@media (max-width: 1100px) { .c50-vergleich { grid-template-columns: repeat(2, minmax(0, 1fr)); } .c50-vergleich > div.dunkel { grid-column: 1 / -1; } }
 .c50-vergleich > div { padding: clamp(22px, 3vw, 32px); border-radius: var(--r-blk); background: var(--raised); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
 .c50-vergleich > div.dunkel { background: var(--blk-ink); color: var(--band-ink); border-color: var(--blk-ink); }
 .c50-vergleich h3 { font-size: clamp(22px, 2.4vw, 28px); letter-spacing: -.02em; }
 .c50-vergleich .dunkel .haken li { color: var(--band-muted); }
+.c50-vergleich .dunkel .haken li b { color: #fff; }
+.c50-vergleich .dunkel .link { color: var(--band-ink); }
 .c50-vergleich .dunkel .haken li::before { color: var(--signal); }
 .c50-vergleich .bsp-tag { color: var(--brand); }
 .c50-vergleich .dunkel .bsp-tag { color: var(--signal); }

@@ -1,5 +1,6 @@
 <?php
-/* Lou Digital – Kundenportal (Version 32, 30.10.2026)
+/* Lou Digital – Kundenportal (Version 34, 31.10.2026)
+   Version 34: Büro mit Tiefen-Check und Prompt-Werkstatt, Kundenseite „Fragebogen“, Betreuung E.
    Version 32: Konto-Sperre nach 8 Fehlversuchen in 15 Minuten, 2FA-Code nur einmal gültig, Statistik unter Büro → Statistik, p_str() für POST-Felder.
    Aufruf über /portal/… (Rewrite in .htaccess). Anmeldung mit E-Mail + Passwort, freiwillige 2FA (TOTP),
    Erstpasswort wird erzeugt und per Mail geschickt, spätere Passwortwechsel werden per Mail bestätigt.
@@ -8,6 +9,7 @@ declare(strict_types=1);
 define('LD', 1);
 require dirname(__DIR__) . '/api/inc/lib.php';
 require dirname(__DIR__) . '/api/inc/portal.php';
+require dirname(__DIR__) . '/api/inc/katalog.php';
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-store'); header('X-Robots-Tag: noindex, nofollow, noarchive');
 const P_BASE = '/portal';
 const P_COOKIE = 'ldp';
@@ -89,8 +91,8 @@ function p_empty(string $txt): string { return '<p class="p-empty">' . $txt . '<
 function p_tickets_zaehlen(int $kunde): int { $r = pd_row("SELECT COUNT(*) c FROM tickets WHERE kunde_id = ? AND status <> 'erledigt' AND art <> 'bot'", [$kunde]); return (int)($r['c'] ?? 0); }
 function p_nav(?array $me, bool $admin, string $route): string {
   if (!$me) return '';
-  $k = [['', 'Übersicht'], ['projekt', 'Projekt'], ['website', 'Website'], ['betreuung', 'Betreuung'], ['workflows', 'Automatik'], ['dokumente', 'Dokumente'], ['nachrichten', 'Nachrichten'], ['hilfe', 'Hilfe'], ['empfehlen', 'Empfehlen'], ['berichte', 'Berichte'], ['einstellungen', 'Einstellungen']];
-  $a = [['admin', 'Übersicht'], ['admin/buero', 'Eingang'], ['admin/auftraege', 'Aufträge'], ['admin/kunden', 'Kunden'], ['admin/tickets', 'Tickets'], ['admin/codes', 'Codes & Aktionen'], ['admin/statistik', 'Statistik'], ['admin/einstellungen', 'Einstellungen']];
+  $k = [['', 'Übersicht'], ['projekt', 'Projekt'], ['fragebogen', 'Fragebogen'], ['website', 'Website'], ['betreuung', 'Betreuung'], ['workflows', 'Automatik'], ['dokumente', 'Dokumente'], ['nachrichten', 'Nachrichten'], ['hilfe', 'Hilfe'], ['empfehlen', 'Empfehlen'], ['berichte', 'Berichte'], ['einstellungen', 'Einstellungen']];
+  $a = [['admin', 'Übersicht'], ['admin/buero', 'Eingang'], ['admin/auftraege', 'Aufträge'], ['admin/kunden', 'Kunden'], ['admin/tickets', 'Tickets'], ['admin/tiefencheck', 'Tiefen-Check'], ['admin/prompts', 'Prompt-Werkstatt'], ['admin/codes', 'Codes & Aktionen'], ['admin/statistik', 'Statistik'], ['admin/einstellungen', 'Einstellungen']];
   $o = '<nav class="p-nav" aria-label="Portal"><ul>';
   foreach ($admin ? $a : $k as [$r, $t]) { $on = $route === $r || ($r !== '' && $r !== 'admin' && strpos($route, $r) === 0); $o .= '<li><a href="' . P_BASE . '/' . $r . '"' . ($on ? ' aria-current="page"' : '') . '>' . $t . '</a></li>'; }
   if ($admin) $o .= '<li class="p-nav-sep"><a href="' . P_BASE . '/einstellungen">Mein Konto</a></li>';

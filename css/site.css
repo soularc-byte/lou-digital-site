@@ -475,7 +475,9 @@ html.js [data-reveal="scale"].in { transform: none; }
 .seg-o { position: relative; cursor: pointer; }
 .seg-o input { position: absolute; opacity: 0; }
 .seg-o span { display: inline-block; padding: 8px 14px; border-radius: var(--r-btn); border: 1px solid var(--line-strong); background: var(--raised); font-size: 14px; transition: background-color .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease); }
+.seg-o span span { display: inline; padding: 0; border: 0; background: none; font: inherit; color: inherit; }
 .seg-o input:checked + span { background: var(--brand); border-color: var(--brand); color: #fff; }
+.seg--zahlung { margin-top: 2px; }
 .seg-o input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
 .row3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .row3 .f-slot { grid-column: 1 / -1; }

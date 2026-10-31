@@ -1,5 +1,7 @@
 <?php
-/* Lou Digital – Datenschicht für Codes, Aufträge und Kundenportal (Version 32, 30.10.2026)
+/* Lou Digital – Datenschicht für Codes, Aufträge und Kundenportal (Version 34, 31.10.2026)
+   Version 34: Leistungskatalog v2 – Tiefen-Check als Paket, Betreuung E (nach Absprache), Stundensatz/Änderungsregeln als Konstanten,
+               Tabellen tiefenchecks (Werkzeug im Büro) und fragebogen (Prompt-Werkstatt, Kundenfragebogen im Portal).
    Version 32: 2FA-Codes gelten nur einmal (totp_schritt), Zertifikatsprüfung nur gegen öffentliche Adressen.
    SQLite-Datei außerhalb des Webroots: ../ld-data/portal.sqlite. Wird beim ersten Aufruf angelegt.
    Enthält: Preise, Rabattcodes (Pilot, Empfehlung, Aktion), Aufträge, Kunden, Sitzungen, 2FA, Tickets, Dokumente. */
@@ -7,16 +9,25 @@ declare(strict_types=1);
 if (!defined('LD')) { http_response_code(404); exit; }
 
 /* ---------- Preise und Regeln (eine Stelle für alles) ---------- */
-const LD_PREISE = ['website' => [390, 790], 'automatik' => [290, 590], 'umfrage' => [190, 290]]; // [Pilotpreis, Normalpreis]
-const LD_TIERS  = ['S' => 29, 'M' => 49, 'L' => 79];
-const LD_TIER_MIN = ['S' => 0, 'M' => 30, 'L' => 60];   // Änderungsminuten je Monat
+const LD_PREISE = ['website' => [390, 790], 'automatik' => [290, 590], 'umfrage' => [190, 290], 'tiefencheck' => [149, 299]]; // [Pilotpreis, Normalpreis]
+const LD_TIERS  = ['S' => 29, 'M' => 49, 'L' => 79, 'E' => 0];   // E = Exklusiv, Preis nach Absprache (0)
+const LD_E_AB = 199;             // Betreuung E: Richtwert „meist ab … € im Monat“ (nur Text, kein Rechenwert)
+const LD_EIL_PROZENT = 50;       // Eilzuschlag bei Frist unter 24 Stunden; Wochenende und Feiertag +100 %
+const LD_TIER_MIN = ['S' => 0, 'M' => 30, 'L' => 60, 'E' => 0];  // Änderungsminuten je Monat (E nach Vertrag)
+const LD_JAHR_MONATE = 10;       // Jahreszahlung: 12 Monate zum Preis von 10
+const LD_STUNDE = 60;            // Änderungen nach Aufwand: € je Stunde (1 € je Minute)
+const LD_MIN_SCHRITT = 5;        // Änderungszeit wird in 5-Minuten-Schritten erfasst
+const LD_NOTFALL = 95;           // Notfall-Hilfe ohne Betreuung: € je Stunde, mindestens 1 Stunde
 const LD_PILOT_MAX = 5;          // Pilotpreis für die ersten fünf bezahlten Kunden
 const LD_PILOT_CODE = 'PILOT';
 const LD_EMPF_PROZENT = 10;      // Empfehlungscode: 10 % für den Neukunden
 const LD_EMPF_GUTSCHRIFT = 50;   // und 50 € Gutschrift für den Werber
 const LD_KOMBI_PROZENT = 10;     // Website + Automatik zusammen
 
-const LD_PAKET_NAMEN = ['website' => 'Website in 7 Tagen', 'automatik' => 'Anfrage-Automatik', 'umfrage' => 'Kundenumfrage', 'betreuung' => 'Betreuung', 'check' => 'Website-Check', 'individuell' => 'Individuelles Paket'];
+const LD_PAKET_NAMEN = ['website' => 'Website in 7 Tagen', 'automatik' => 'Anfrage-Automatik', 'umfrage' => 'Kundenumfrage', 'tiefencheck' => 'Tiefen-Check', 'betreuung' => 'Betreuung', 'check' => 'Website-Check', 'individuell' => 'Individuelles Paket'];
+/* Preis einer Betreuungsstufe je Monat (0 = nach Absprache) und als Text */
+function ld_tier_preis(string $stufe, bool $jahr = false): int { $p = LD_TIERS[$stufe] ?? 0; return $jahr ? $p * LD_JAHR_MONATE : $p; }
+function ld_tier_text(string $stufe, bool $jahr = false): string { $p = ld_tier_preis($stufe, $jahr); return $p ? number_format($p, 0, ',', '.') . ' €' . ($jahr ? '/Jahr' : '/Monat') : 'nach Absprache'; }
 const LD_STATUS = ['angebot' => 'Angebot gesendet', 'gespraech' => 'Gespräch geführt', 'vertrag' => 'Vertrag geschlossen', 'bezahlt' => 'Bezahlt', 'laufend' => 'In Arbeit', 'fertig' => 'Abgeschlossen', 'abgelehnt' => 'Nicht zustande gekommen'];
 
 function pd(): PDO {
@@ -66,6 +77,16 @@ function pd_schema(PDO $db): void {
   /* Version 32: letzter benutzter 2FA-Zeitschritt, damit ein Code nicht zweimal gilt */
   $cols = array_column($db->query('PRAGMA table_info(kunden)')->fetchAll(), 'name');
   if (!in_array('totp_schritt', $cols, true)) $db->exec("ALTER TABLE kunden ADD COLUMN totp_schritt INTEGER NOT NULL DEFAULT 0");
+  /* Version 34: Tiefen-Check (Werkzeug im Büro), Fragebogen (Prompt-Werkstatt + Kundenportal), Aktionspreis für den Tiefen-Check */
+  $db->exec("CREATE TABLE IF NOT EXISTS tiefenchecks (id INTEGER PRIMARY KEY, kunde_id INTEGER NOT NULL DEFAULT 0, auftrag_id INTEGER NOT NULL DEFAULT 0, firma TEXT NOT NULL DEFAULT '', ansprech TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '',
+    url TEXT NOT NULL, host TEXT NOT NULL DEFAULT '', ziel TEXT NOT NULL DEFAULT '', suche TEXT NOT NULL DEFAULT '', wettbewerb TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'entwurf',
+    punkte TEXT NOT NULL DEFAULT '{}', auto TEXT NOT NULL DEFAULT '', auto_zeit TEXT NOT NULL DEFAULT '', zusammenfassung TEXT NOT NULL DEFAULT '', empfehlung TEXT NOT NULL DEFAULT '', notiz TEXT NOT NULL DEFAULT '',
+    score INTEGER NOT NULL DEFAULT 0, dokument_id INTEGER NOT NULL DEFAULT 0, angelegt TEXT NOT NULL, aktualisiert TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS fragebogen (id INTEGER PRIMARY KEY, kunde_id INTEGER NOT NULL DEFAULT 0, leistung TEXT NOT NULL, antworten TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'entwurf', freigabe INTEGER NOT NULL DEFAULT 0,
+    notiz TEXT NOT NULL DEFAULT '', angelegt TEXT NOT NULL, aktualisiert TEXT NOT NULL);
+  CREATE INDEX IF NOT EXISTS i_tc_k ON tiefenchecks(kunde_id); CREATE INDEX IF NOT EXISTS i_fb_k ON fragebogen(kunde_id, leistung);");
+  $cols = array_column($db->query('PRAGMA table_info(codes)')->fetchAll(), 'name');
+  if (!in_array('preis_tiefencheck', $cols, true)) { $db->exec("ALTER TABLE codes ADD COLUMN preis_tiefencheck INTEGER NOT NULL DEFAULT 0"); $db->exec("UPDATE codes SET preis_tiefencheck = " . LD_PREISE['tiefencheck'][0] . " WHERE code = '" . LD_PILOT_CODE . "'"); }
 }
 function pd_now(): string { return date('Y-m-d H:i:s'); }
 function pd_q(string $sql, array $p = []): PDOStatement { $s = pd()->prepare($sql); $s->execute($p); return $s; }
@@ -150,7 +171,8 @@ function ld_code_rabatt(int $prozent, array $pakete, array $preise): int {
   if ($prozent <= 0) return 0;
   $einmalig = 0; foreach ($pakete as $k) if (isset($preise[$k])) $einmalig += $preise[$k][0];
   $kombi = in_array('website', $pakete, true) && in_array('automatik', $pakete, true) ? (int)round(($preise['website'][0] + $preise['automatik'][0]) * LD_KOMBI_PROZENT / 100) : 0;
-  return (int)round(($einmalig - $kombi) * $prozent / 100);
+  $anrechnung = in_array('website', $pakete, true) && in_array('tiefencheck', $pakete, true) ? $preise['tiefencheck'][0] : 0;   // Version 34: Tiefen-Check wird mit der Website angerechnet
+  return (int)round(($einmalig - $kombi - $anrechnung) * $prozent / 100);
 }
 /* Code verbrauchen: erst wenn der Auftrag bezahlt ist. Empfehlungscode -> Gutschrift für den Werber. */
 function ld_code_verbrauchen(array $auftrag): void {
