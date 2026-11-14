@@ -1,0 +1,90 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}#c{width:900px;height:900px;display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body><canvas id="c" width="900" height="900"></canvas>
+<script type="module">
+// 3D-Glocke im Stil der Website-Figuren (Petrol, weiße Wülste, Limette), Blick von links oben
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const P = new URLSearchParams(location.search);
+const AZ = parseFloat(P.get('az') || '-30');   // Kamera links vom Objekt = linke Seite sichtbar
+const EL = parseFloat(P.get('el') || '16');    // Kamera über dem Objekt = Oberseite sichtbar
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(2); renderer.setSize(900, 900, false);
+renderer.setClearColor(0x000000, 0);
+renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = parseFloat(P.get('exp') || '0.95');
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const teal = new THREE.MeshPhysicalMaterial({color:(P.get('teal') ? '#' + P.get('teal') : '#07897f'), roughness:0.46, clearcoat:0.4, clearcoatRoughness:0.38, envMapIntensity:0.42});
+const white = new THREE.MeshPhysicalMaterial({color:'#eef1ee', roughness:0.38, clearcoat:0.5, clearcoatRoughness:0.3, envMapIntensity:0.6});
+const lime = new THREE.MeshPhysicalMaterial({color:'#d6e173', roughness:0.34, clearcoat:0.7, clearcoatRoughness:0.25, envMapIntensity:0.65});
+const ink = new THREE.MeshPhysicalMaterial({color:'#101718', roughness:0.25, clearcoat:1.0, clearcoatRoughness:0.1, envMapIntensity:1.0});
+
+const g = new THREE.Group();
+// Körper (Drehkörper aus einem weichen Profil)
+const prof = new THREE.SplineCurve([
+  new THREE.Vector2(0.000, 1.000), new THREE.Vector2(0.150, 0.992), new THREE.Vector2(0.270, 0.958),
+  new THREE.Vector2(0.350, 0.900), new THREE.Vector2(0.392, 0.820), new THREE.Vector2(0.410, 0.720),
+  new THREE.Vector2(0.420, 0.600), new THREE.Vector2(0.435, 0.480), new THREE.Vector2(0.465, 0.370),
+  new THREE.Vector2(0.515, 0.270), new THREE.Vector2(0.585, 0.180), new THREE.Vector2(0.650, 0.110),
+  new THREE.Vector2(0.690, 0.060), new THREE.Vector2(0.700, 0.030)]);
+const pts = prof.getPoints(120);
+pts.push(new THREE.Vector2(0.69, 0.0), new THREE.Vector2(0.0, 0.0));
+const body = new THREE.Mesh(new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p.x, p.y)).reverse(), 160), teal);
+body.castShadow = true; body.receiveShadow = true; g.add(body);
+// weißer Wulst unten
+const rim = new THREE.Mesh(new THREE.TorusGeometry(0.69, 0.062, 40, 200), white);
+rim.rotation.x = Math.PI/2; rim.position.y = 0.035; rim.castShadow = true; rim.receiveShadow = true; g.add(rim);
+// Klöppel
+// (Klöppel weggelassen, von oben ohnehin verdeckt)
+// Öse oben
+const loop = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.034, 32, 96), white);
+loop.position.set(0, 1.07, 0); loop.rotation.y = AZ * Math.PI / 180; loop.castShadow = true; g.add(loop);
+
+// Abzeichen mit „1“ (wie das Abzeichen am Brief: Limette, weißer Ring, dunkle Ziffer)
+const badge = new THREE.Group();
+const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.205, 0.205, 0.07, 96), lime);
+disc.rotation.x = Math.PI/2; badge.add(disc);
+const dome = new THREE.Mesh(new THREE.SphereGeometry(0.205, 96, 48, 0, Math.PI*2, 0, Math.PI/2), lime);
+dome.rotation.x = Math.PI/2; dome.scale.set(1, 0.32, 1); dome.position.z = 0.035; badge.add(dome);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(0.215, 0.05, 40, 120), white);
+ring.position.z = 0.0; badge.add(ring);
+// Ziffer 1 als Fläche mit Fase
+const s = new THREE.Shape();
+s.moveTo(0.012, 0.115); s.lineTo(0.040, 0.115); s.lineTo(0.040, -0.115); s.lineTo(-0.012, -0.115);
+s.lineTo(-0.012, 0.050); s.lineTo(-0.060, 0.020); s.lineTo(-0.060, 0.068); s.lineTo(0.012, 0.115);
+const one = new THREE.Mesh(new THREE.ExtrudeGeometry(s, {depth:0.03, bevelEnabled:true, bevelThickness:0.012, bevelSize:0.008, bevelSegments:6, curveSegments:12}), ink);
+one.position.set(-0.010, 0.0, 0.085); badge.add(one);
+badge.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+badge.position.set(-0.40, 0.86, 0.30);
+// zur Kamera drehen
+const az = AZ * Math.PI/180, el = EL * Math.PI/180;
+badge.rotation.set(-el*0.9, az*0.9, 0, 'YXZ');
+g.add(badge);
+scene.add(g);
+
+// Licht
+const key = new THREE.DirectionalLight(0xffffff, parseFloat(P.get('key') || '2.3')); key.position.set(-3.2, 4.2, 3.4); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.camera.left = -2; key.shadow.camera.right = 2; key.shadow.camera.top = 2; key.shadow.camera.bottom = -2;
+key.shadow.radius = 8; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.01; scene.add(key);
+const fill = new THREE.DirectionalLight(0xf2fffd, 0.12); fill.position.set(3, 1.5, 2); scene.add(fill);
+scene.add(new THREE.AmbientLight(0xffffff, 0.05));
+scene.environmentRotation = new THREE.Euler(0, parseFloat(P.get('envrot') || '-0.9'), 0);
+scene.environmentIntensity = parseFloat(P.get('env') || '1.0');
+// weicher Bodenschatten in Petrol
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.ShadowMaterial({color: 0x0b6e69, opacity: P.get('noground') ? 0.0 : 0.30}));
+ground.rotation.x = -Math.PI/2; ground.position.y = -0.22; ground.receiveShadow = true; scene.add(ground);
+
+// Kamera: links oben vor dem Objekt
+const cam = new THREE.PerspectiveCamera(19, 1, 0.1, 100);
+const dist = 6.1;
+cam.position.set(Math.sin(az)*Math.cos(el)*dist, 0.45 + Math.sin(el)*dist, Math.cos(az)*Math.cos(el)*dist);
+cam.lookAt(0, 0.42, 0);
+renderer.render(scene, cam);
+window.__done = true;
+</script></body></html>
